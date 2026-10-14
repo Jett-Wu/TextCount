@@ -1,40 +1,31 @@
 /**
  * Literal search over the original text.
  *
- * Design rules (see the product spec, section 3.2):
- *  - Matching is **literal and contiguous**: `,` never matches `，`.
- *  - Matching is **non-overlapping**: `aa` occurs twice in `aaaa`.
- *  - The full match count is always exact, no matter how many matches there are.
- *  - Only a bounded number of positions is retained, so a one-million-match document cannot
- *    allocate a one-million-element array. `truncated` tells the caller when that happened.
- *  - Offsets are UTF-16 code units so they can be handed straight to `setSelectionRange`.
- *  - The original text is never modified.
+ * - Matching is literal: `,` never matches `，`.
+ * - Matching is non-overlapping: `aa` occurs twice in `aaaa`.
+ * - The count is always exact; only a bounded number of positions is retained, so a
+ *   million-match document cannot allocate a million-element array.
+ * - Offsets are UTF-16 code units, ready for `setSelectionRange`.
+ * - The text is never modified.
  *
- * The case-insensitive path deliberately does **not** build a lower-cased copy of the text:
- * `toLowerCase()` can change string length for some code points, which would shift every
- * offset after it and highlight the wrong characters. Instead a case-insensitive RegExp is
- * executed against the original string, so `match.index` is already a correct original offset.
+ * The case-insensitive path deliberately does not lower-case a copy of the text:
+ * `toLowerCase()` can change a string's length, which would shift every offset after it and
+ * highlight the wrong characters. A case-insensitive RegExp runs against the original string,
+ * so `match.index` is already a correct original offset.
  */
 
-/** Default cap on retained match positions per term. */
 export const DEFAULT_MAX_POSITIONS = 500;
 
 export interface SearchOptions {
-  /** Exact literal matching (default) or case-insensitive matching. */
   caseSensitive?: boolean;
-  /** Maximum number of positions to retain. The count is unaffected. */
   maxPositions?: number;
 }
 
 export interface MatchResult {
   term: string;
-  /** Exact number of non-overlapping matches in the whole text. */
   count: number;
-  /** UTF-16 offsets of the retained matches, ascending. */
   positions: number[];
-  /** Length in UTF-16 code units of each retained match (parallel to `positions`). */
   lengths: number[];
-  /** True when `positions` holds fewer entries than `count`. */
   truncated: boolean;
 }
 
@@ -45,8 +36,7 @@ const EMPTY_MATCH: Omit<MatchResult, 'term'> = {
   truncated: false,
 };
 
-/** Escapes a literal for use inside a RegExp, including the `u`-mode reserved characters. */
-export function escapeRegExp(literal: string): string {
+function escapeRegExp(literal: string): string {
   return literal.replace(/[\\^$.*+?()[\]{}|/\-#&~]/g, '\\$&');
 }
 
@@ -55,7 +45,7 @@ function buildCaseInsensitivePattern(term: string): RegExp {
   try {
     return new RegExp(source, 'giu');
   } catch {
-    // A lone surrogate in the term makes the `u` flag throw; plain `gi` still works.
+    // A lone surrogate in the term makes the `u` flag throw.
     return new RegExp(source, 'gi');
   }
 }
@@ -93,8 +83,6 @@ export function findMatches(text: string, term: string, options: SearchOptions =
         positions.push(match.index);
         lengths.push(match[0].length);
       }
-      // `exec` already advanced past a non-empty match; guard against a zero-length match
-      // (possible for a term that folds to nothing) so the loop cannot spin forever.
       if (match[0].length === 0) pattern.lastIndex++;
     }
   }
@@ -102,7 +90,6 @@ export function findMatches(text: string, term: string, options: SearchOptions =
   return { term, count, positions, lengths, truncated: count > positions.length };
 }
 
-/** Runs `findMatches` for several terms. Empty/blank terms are skipped by the caller. */
 export function findMatchesMany(
   text: string,
   terms: readonly string[],
@@ -111,7 +98,6 @@ export function findMatchesMany(
   return terms.map((term) => findMatches(text, term, options));
 }
 
-/** Moves an offset down when it would split a surrogate pair. */
 function alignDown(text: string, index: number): number {
   if (index <= 0) return 0;
   if (index >= text.length) return text.length;
@@ -120,7 +106,6 @@ function alignDown(text: string, index: number): number {
   return index;
 }
 
-/** Moves an offset up when it would split a surrogate pair. */
 function alignUp(text: string, index: number): number {
   if (index <= 0) return 0;
   if (index >= text.length) return text.length;
@@ -135,15 +120,11 @@ export interface MatchContext {
   before: string;
   match: string;
   after: string;
-  /** True when the excerpt does not reach the beginning/end of the document. */
   truncatedBefore: boolean;
   truncatedAfter: boolean;
 }
 
-/**
- * Builds a short excerpt around a match for the "show context" view. Slices are aligned to
- * code point boundaries so an excerpt never starts or ends with half an emoji.
- */
+/** Excerpt around a match. Slices are aligned to code points so they never emit half an emoji. */
 export function contextAround(
   text: string,
   start: number,
@@ -152,8 +133,6 @@ export function contextAround(
 ): MatchContext {
   const clampedStart = Math.max(0, Math.min(start, text.length));
   const clampedEnd = Math.max(clampedStart, Math.min(clampedStart + length, text.length));
-  // Align the match itself as well as the excerpt: a caller that passes an offset inside a
-  // surrogate pair (for example from an external index) must not get half an emoji back.
   const safeStart = alignDown(text, clampedStart);
   const safeEnd = Math.max(safeStart, alignUp(text, clampedEnd));
   const from = alignDown(text, Math.max(0, safeStart - radius));

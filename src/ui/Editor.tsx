@@ -1,23 +1,24 @@
 /**
  * The document editor.
  *
- * This is an **uncontrolled** native `<textarea>`: Preact renders it once and never writes to
- * `value` again. That is the single most important interaction decision in the app — it is what
- * keeps IME composition, caret position, selection and undo history intact, and it is what stops
- * a multi-megabyte string from flowing through the component tree on every keystroke.
- *
- * The counts above it are driven by `setText`, which only records the text and schedules a scan.
+ * An uncontrolled native `<textarea>`: Preact renders it once and never writes to `value`
+ * again. That single decision is what keeps IME composition, caret, selection and undo intact,
+ * and what stops a multi-megabyte string from flowing through the component tree per keystroke.
+ * Counts are driven by `setText`, which only records the text and schedules a scan.
  */
+
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { INLINE_ANALYSIS_LIMIT, appStore, setText } from '../../app/appState';
-import { copyAllText, registerEditor } from '../../app/editorBridge';
-import { useStore } from '../../app/store';
-import { useTranslate } from '../../app/useTranslate';
+import { copyAllText, registerEditor } from '../app/editor';
+import {
+  INLINE_ANALYSIS_LIMIT,
+  appStore,
+  setText,
+  useStore,
+  useTranslate,
+} from '../app/state';
 
-/** Above this size, clearing the text needs a confirming second click. */
+/** Above this size, clearing needs a confirming second click. */
 const CLEAR_CONFIRM_THRESHOLD = 200_000;
-
-/** How long the "click again to clear" state stays armed. */
 const CLEAR_CONFIRM_WINDOW_MS = 4000;
 
 export function Editor() {
@@ -99,13 +100,7 @@ export function Editor() {
           {longText && degraded ? <span class="pill pill--warn">{t('editor.degradedNotice')}</span> : null}
         </div>
         <div class="editor-bar__actions">
-          <button
-            type="button"
-            class="btn"
-            onClick={handleCopy}
-            disabled={textLength === 0}
-            title={t('editor.copy')}
-          >
+          <button type="button" class="btn" onClick={handleCopy} disabled={textLength === 0}>
             {copyLabel}
           </button>
           <button

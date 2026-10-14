@@ -6,7 +6,7 @@
  * in case-insensitive mode.
  */
 import { describe, expect, it } from 'vitest';
-import { contextAround, escapeRegExp, findMatches, findMatchesMany } from '../../src/core/search';
+import { contextAround, findMatches, findMatchesMany } from '../../src/core/search';
 
 describe('literal, non-overlapping matching', () => {
   it('finds aa twice in aaaa', () => {
@@ -105,7 +105,6 @@ describe('case handling', () => {
     expect(findMatches(text, 'a.b', { caseSensitive: false }).count).toBe(2);
     expect(findMatches('price ($5)', '($5)', { caseSensitive: false }).count).toBe(1);
     expect(findMatches('a+b', 'a+b').count).toBe(1);
-    expect(escapeRegExp('a+b*c?')).toBe('a\\+b\\*c\\?');
   });
 });
 

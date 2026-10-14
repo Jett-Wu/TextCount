@@ -79,7 +79,7 @@
 ### D-005 — 2026-10-14 — 正文不进响应式状态；结果一律由 revision 认领
 
 - **类型：** 决策
-- **关联：** R2、C3、C5、`src/app/appState.ts`
+- **关联：** R2、C3、C5、`src/app/state.ts`
 - **背景：** 方案第 7.2/7.4 节把"不要把百万字全文放进应用根状态"列为最重要的架构约束，并要求
   "新输入出现后旧任务结果必须丢弃"。
 - **结果：** `currentText` 是模块级字符串，只由 `setText` 写入；store 只保存派生的小值。
@@ -90,9 +90,9 @@
   Worker 结果仍会覆盖新文本的数字；只做 revision 守卫而把全文放进 store，每次击键仍会
   协调整棵树。
 - **避免重复：** 不要在 UI 组件里 `getText()` 之后再放进 `useState`；不要给 `<textarea>`
-  传 `value`。面板需要操作编辑区时，只能通过 `src/app/editorBridge.ts`。
-- **证据：** `src/app/appState.ts`（`applyStats` 与 `runFind`/`runSymbols` 的守卫）、
-  `src/ui/editor/Editor.tsx`（非受控）、`src/app/store.ts` 的模块注释。
+  传 `value`。面板需要操作编辑区时，只能通过 `src/app/editor.ts`。
+- **证据：** `src/app/state.ts`（`applyStats` 与 `runFind`/`runSymbols` 的守卫）、
+  `src/ui/Editor.tsx`（非受控）、`src/app/state.ts` 的模块注释。
 
 ### D-006 — 2026-10-14 — 百万字符实测数据，以及 20,000 字符内联阈值
 
@@ -120,12 +120,12 @@
 - **避免重复：** 不要为了"更快"而把大文本改成 `ArrayBuffer` 传输；编码/解码与偏移映射的复杂度
   换不来可感知的收益，实测的瓶颈本来就不在这里。
 - **证据：** 真实浏览器脚本测量（`PerformanceObserver` 的 `longtask` 条目）；
-  `src/app/appState.ts` 的 `INLINE_ANALYSIS_LIMIT` 及其注释。
+  `src/app/state.ts` 的 `INLINE_ANALYSIS_LIMIT` 及其注释。
 
 ### D-007 — 2026-10-14 — 移动端编辑区被 `flex-basis` 压塌到 90 px
 
 - **类型：** 根因与经验
-- **关联：** R6、`src/styles/layout.css`
+- **关联：** R6、`src/styles/app.css`
 - **背景：** 390 px 视口实测时编辑区只有 90 px 高，而 CSS 写的是 `height: 42dvh`（应约 354 px）。
 - **结果：** 原因是移动端断点里编辑区仍带 `flex: 1`，即 `flex-basis: 0%`；在高度由内容决定的
   纵向 flex 容器中，`flex-basis` 优先于 `height`，于是 42dvh 被忽略。加 `flex: none` 后恢复
@@ -134,7 +134,7 @@
   必须同时解除 flex 伸缩，否则两个规则会互相抵消，且只在窄屏复现。
 - **避免重复：** 以后在同一个选择器上用 `height` 指定尺寸时，先确认它没有继承 `flex: 1`。
   响应式改动必须在真实窄视口（同源 iframe 或设备模拟）里量高度，而不是只看截图。
-- **证据：** `src/styles/layout.css` 中 `@media (max-width: 820px)` 内 `.editor` 的注释；
+- **证据：** `src/styles/app.css` 中 `@media (max-width: 820px)` 内 `.editor` 的注释；
   390 px 同源 iframe 实测 `editorHeight: 354`、`horizontalOverflow: false`。
 
 ### D-008 — 2026-10-14 — 深色配色值刻意重复两份，不用 `light-dark()`
@@ -189,7 +189,38 @@
 - **理由或经验：** 这四条都属于"测试看不见、用户看得见"的类别。凡是涉及"让用户做判断"的界面
   （对比、确认、选择），判定条件里必须包含"用户能否看出差别"，否则功能再正确也不算完成。
 - **避免重复：** 只跑自动检查就宣布界面完成；或反过来，为了好看而删掉零命中提示这类信息。
-- **证据：** `src/ui/search/SearchPanel.tsx` 的 `selectTerm`；`src/styles/components.css` 的
-  `.panel-body >` 规则与 `.chip__code`；`src/ui/inspector/InspectorPanel.tsx` 的 mixed 码位；
+- **证据：** `src/ui/SearchPanel.tsx` 的 `selectTerm`；`src/styles/app.css` 的
+  `.panel-body >` 规则与 `.chip__code`；`src/ui/InspectorPanel.tsx` 的 mixed 码位；
   `tests/e2e/smoke.spec.ts` 的 "a target with no matches can still be selected" 用例；
   逐状态截图 `.verify/v1`–`v8`。
+
+### D-011 — 2026-10-14 — 源文件从 33 个合并到 20 个，并确立注释取舍标准
+
+- **类型：** 决策
+- **关联：** 维护性、T-001
+- **背景：** 首版按"一个组件一个文件"组织，出现大量 15–30 行的文件（`format.ts`、`locate.ts`、
+  `useTranslate.ts`、`NumberValue.tsx`、`Segmented.tsx`、`Dialog.tsx`），UI 目录下还有 5 个只放
+  1–3 个文件的子目录。同时注释密度过高：不少注释在复述代码已经写清楚的事情。
+- **结果：**
+  - `core/` 4 个文件（`rules.ts` 并入 `count.ts`，因为口径就是计数的契约）。
+  - `app/` 2 个文件：`state.ts`（store + 正文副本 + `revision` + Worker + 偏好 + i18n hook）、
+    `editor.ts`（注册、定位、复制）。
+  - `ui/` 6 个文件，去掉全部单文件子目录；`common.tsx` 放共享基元，`App.tsx` 承担外壳、
+    顶栏、三个主数字、工具面板与关于弹窗。
+  - `styles/` 2 个文件（`tokens.css` + `app.css`）。
+  - 删除从未被 `src/` 使用的导出：`countSettingsEqual`、`RULES_VERSION`、`getEditor`、
+    `SUPPORTED_LOCALES`、`utf16Length`、`isBlank`、`isWhitespace`、`isLineBreakCodePoint`、
+    `countGraphemes`、`isPunctuation`，以及只在测试里用过的 `escapeRegExp` 导出。
+    `findMatchesMany` 保留并改为在 `state.ts` 中真正使用，消掉了三处重复的 `terms.map(...)`。
+  - 注释标准：**只写"为什么"**。保留踩坑记录（正则 `u` 标志、`flex-basis` 覆盖 `height`、
+    深色值重复两份、`mixed` 的误报边界）与计数口径契约；删掉文件头散文、逐成员 JSDoc 和
+    复述代码的行内注释。
+- **理由或经验：** 文件数本身不是问题，"每个文件都要跳一次"才是。合并的判据是**职责是否同一**：
+  `state.ts` 之所以能容纳 store、Worker 与偏好，是因为它们共享同一个生命周期与同一条
+  `revision` 规则；而 `core/` 的四个文件各自对应一个可独立验证的领域，合在一起只会让
+  正确性边界变模糊。删除"只被测试使用的导出"是这次收益最大的动作——它们制造了维护面却没有
+  使用者。
+- **避免重复：** 不要为了"结构清晰"再引入单文件子目录；也不要重新导出只给测试看的辅助函数
+  （测试应当通过真实入口验证行为）。注释新增前先问：删掉它，读者会不会做错事？
+- **证据：** `git show --stat`；`src/app/state.ts`、`src/ui/App.tsx`、`src/styles/app.css`；
+  重构后 `npm run check`（121 单元测试）与 `npm run test:e2e`（16 用例）全绿，行为未变。

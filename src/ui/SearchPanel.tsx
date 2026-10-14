@@ -1,21 +1,15 @@
 /**
  * Multi-target literal search.
  *
- * The two behaviours worth protecting:
- *
- *  1. **The count is exact, the rendered positions are bounded.** A term that occurs 200 000
- *     times still reports 200 000; only the first `MAX_SEARCH_POSITIONS` are retained for
- *     navigation, so the panel never builds a huge structure.
- *  2. **The document is never modified.** Locating a match selects it in the textarea; nothing
- *     is replaced, rewritten or reformatted.
+ * The count is always exact; only the rendered positions are bounded, so a term occurring
+ * 200 000 times still reports 200 000 while the panel stays small. Locating a match selects it
+ * in the textarea — the document itself is never modified.
  */
+
 import { useEffect, useMemo, useState } from 'preact/hooks';
-import { appStore, runFind } from '../../app/appState';
-import { contextAround, type MatchResult } from '../../core/search';
-import { getText } from '../../app/appState';
-import { revealRange } from '../../app/editorBridge';
-import { useStore } from '../../app/store';
-import { useTranslate } from '../../app/useTranslate';
+import { revealRange } from '../app/editor';
+import { appStore, getText, runFind, useStore, useTranslate } from '../app/state';
+import { contextAround, type MatchResult } from '../core/search';
 
 const SEARCH_DEBOUNCE_MS = 120;
 const CONTEXT_RADIUS = 90;
@@ -42,9 +36,9 @@ export function SearchPanel() {
     let cancelled = false;
     setStatus('running');
     const handle = setTimeout(() => {
+      // `null` means the document changed mid-flight: the numbers would describe text the user
+      // has already edited, so they are dropped rather than displayed.
       void runFind(terms, caseSensitive).then((found) => {
-        // `runFind` returns null when the document changed mid-flight: the numbers would belong
-        // to text the user has already edited, so they are dropped instead of displayed.
         if (cancelled || found === null) return;
         setResults(found);
         setStatus('done');
@@ -68,7 +62,6 @@ export function SearchPanel() {
     if (start === undefined) return null;
     const length = activeResult.lengths[safeMatch] ?? activeResult.term.length;
     return contextAround(getText(), start, length, CONTEXT_RADIUS);
-    // `revision` is a deliberate dependency: it is what makes the excerpt track the document.
   }, [activeResult, safeMatch, navigable, revision]);
 
   const addTerm = (): void => {
@@ -87,11 +80,8 @@ export function SearchPanel() {
   };
 
   /**
-   * Makes `termIndex` the active target and reveals its first match.
-   *
-   * A term with zero matches must still become active: the user added it precisely to confirm
-   * that it is absent, so the panel has to be able to show "no match" for it. Only the
-   * scroll-and-select part is conditional.
+   * A term with zero matches must still become active — the user added it precisely to confirm
+   * it is absent, so the panel has to be able to say so. Only revealing is conditional.
    */
   const selectTerm = (termIndex: number): void => {
     setActiveTerm(termIndex);
@@ -99,8 +89,7 @@ export function SearchPanel() {
     const result = results[termIndex];
     const start = result?.positions[0];
     if (result === undefined || start === undefined) return;
-    const length = result.lengths[0] ?? result.term.length;
-    revealRange(start, start + length);
+    revealRange(start, start + (result.lengths[0] ?? result.term.length));
   };
 
   const step = (termIndex: number, delta: number): void => {
@@ -116,8 +105,7 @@ export function SearchPanel() {
     setActiveMatch(next);
     const start = result.positions[next];
     if (start === undefined) return;
-    const length = result.lengths[next] ?? result.term.length;
-    revealRange(start, start + length);
+    revealRange(start, start + (result.lengths[next] ?? result.term.length));
   };
 
   const matchLabel = (count: number): string =>

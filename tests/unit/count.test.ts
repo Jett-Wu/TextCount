@@ -1,14 +1,18 @@
 /**
  * Regression suite for the counting rules.
  *
- * Every case encodes an input, an expected output and the rule that explains it. These are the
- * cases from section 12.2 of the design reference plus the boundary cases the implementation
- * depends on. Do not "fix" a failure by editing the expectation without changing the rule
- * documentation in `src/core/count.ts`.
+ * Each case encodes an input, an expected output and the rule that explains it: the samples
+ * from section 12.2 of the design reference, plus the boundaries the implementation depends on.
+ * A failure here means the rule changed — update `src/core/count.ts`, the locale wording and
+ * this file together, never this file alone.
  */
 import { describe, expect, it } from 'vitest';
-import { EMPTY_STATS, analyzeText, isPunctuation } from '../../src/core/count';
-import { DEFAULT_COUNT_SETTINGS, type CountSettings } from '../../src/core/rules';
+import {
+  DEFAULT_COUNT_SETTINGS,
+  EMPTY_STATS,
+  analyzeText,
+  type CountSettings,
+} from '../../src/core/count';
 
 function run(text: string, overrides: Partial<CountSettings> = {}) {
   return analyzeText(text, { ...DEFAULT_COUNT_SETTINGS, ...overrides });
@@ -225,12 +229,6 @@ describe('punctuation and symbols', () => {
     expect(stats.punctuation).toBe(0);
     expect(stats.latinWords).toBe(2);
     expect(stats.mixed).toBe(2);
-  });
-
-  it('exposes the documented punctuation helper', () => {
-    expect(isPunctuation('，')).toBe(true);
-    expect(isPunctuation('a')).toBe(false);
-    expect(isPunctuation('🙂')).toBe(false);
   });
 });
 

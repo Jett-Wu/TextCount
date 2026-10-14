@@ -62,7 +62,7 @@
 - `src/core/` 五个模块（`count`、`unicode`、`search`、`symbols`、`rules`），无 DOM/框架/Node 依赖。
 - `src/app/` 协调器：唯一文本副本、`revision` 过期结果丢弃、按需 Worker 与主线程回退。
 - `src/ui/` 全部 P0 界面与 `src/styles/` 设计 Token；中英双语字典（类型强制同构）。
-- 132 个 Vitest 单元测试全绿；构建产物 22.24 KiB gzip JS + 3.96 KiB gzip CSS。
+- 121 个 Vitest 单元测试全绿；构建产物 22.15 KiB gzip JS + 3.99 KiB gzip CSS。
 - 真实 Chromium 中的功能与性能验证（数据见 `DEVLOG.md` D-006）。
 - `AGENTS.md`、`PROJECT.md`、`DEVLOG.md`、`README.md`、`docs/decisions/0001-tech-stack.md`。
 - GitHub Actions：`ci.yml`（类型 + 测试 + 构建 + 产物）与 `deploy.yml`（Pages 发布）。
@@ -84,9 +84,9 @@
 ## 验证
 
 - `npm run typecheck` → 通过（无输出）。
-- `npm test`（Vitest 5.0.4）→ 通过，**132 passed / 4 files**。
-- `npm run build` → 通过：`dist/index.html` 2.02 kB、`index.js` 61.63 kB（gzip 22.35 kB）、
-  `index.css` 18.14 kB（gzip 4.00 kB）、`analysis.worker.js` 8.51 kB。
+- `npm test`（Vitest 5.0.4）→ 通过，**121 passed / 4 files**。
+- `npm run build` → 通过：`dist/index.html` 2.02 kB、`index.js` 60.92 kB（gzip 22.15 kB）、
+  `index.css` 17.62 kB（gzip 3.99 kB）、`analysis.worker.js` 8.43 kB。
 - `npm run check`（类型 + 测试 + 构建）→ 通过。
 - `npm run test:e2e`（Playwright，对生产构建跑在真实 `/textcount/` 子路径下）→ 通过，
   **16 passed**。
@@ -96,6 +96,8 @@
 - **逐状态视觉走查**（空 / 有文 / 口径菜单 / 查找命中 / 查找零命中 / 符号检查 / 关于；
   深色与浅色；1300 px 与 390 px）→ 发现并修正 4 个界面问题（零命中目标不可选中、面板间距叠加、
   相似符号缺少码位、口径说明过长），规则与证据记录在 `DEVLOG.md` D-010，截图在 `.verify/`。
+- **结构精简**（`DEVLOG.md` D-011）→ 源文件 33 → 20，删除 11 个从未被 `src/` 使用的导出，
+  合并 5 个单文件子目录；重构后类型检查、单元测试与 E2E 全绿，行为未变。
 - 高风险项审查：计数口径与 Unicode 分类由 `tests/unit/count.test.ts`、`unicode.test.ts` 的
   边界样例覆盖（Emoji ZWJ、旗帜、肤色修饰符、CRLF、CJK 扩展 B、全角数字等）；符号分类的
   `mixed` 语义经专项复核并修正（DEVLOG D-004）；隐私边界由刷新验证与构建产物检查确认
@@ -103,5 +105,5 @@
 
 ## 任务备注
 
-- 本任务的详细决策与失败方案见 `DEVLOG.md` 的 D-001 至 D-007，不在本文件重复。
+- 本任务的详细决策与失败方案见 `DEVLOG.md` 的 D-001 至 D-011，不在本文件重复。
 - 用户提供的中文方案原件保留在仓库根目录，文件名保持原样（含百分号编码），避免破坏既有引用。

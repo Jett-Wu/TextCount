@@ -1,60 +1,20 @@
 /**
  * Full-width / half-width and punctuation inspection.
  *
- * This panel is **read-only by design**: it reports which forms occur, how often, and where —
- * it never converts, replaces or normalises anything. The wording is deliberately
- * "more than one form" rather than "wrong", because mixing is often correct in mixed
- * Chinese/English text and the tool has no way to know the reader's style guide.
+ * Read-only by design: it reports which forms occur, how often and where — it never converts,
+ * replaces or normalises anything. The wording is "more than one form" rather than "wrong",
+ * because mixing is often correct in mixed Chinese/English text.
  */
+
 import { useEffect, useState } from 'preact/hooks';
-import { appStore, runSymbols } from '../../app/appState';
-import { locateFirst } from '../../app/locate';
-import type { SymbolReport } from '../../core/symbols';
-import { useStore } from '../../app/store';
-import { useTranslate } from '../../app/useTranslate';
-import type { MessageKey } from '../../locales';
+import { locateFirst } from '../app/editor';
+import { appStore, runSymbols, useStore, useTranslate } from '../app/state';
+import type { SymbolReport } from '../core/symbols';
+import type { MessageKey } from '../locales';
 
 const SYMBOL_DEBOUNCE_MS = 150;
 
-const GROUP_IDS = [
-  'comma',
-  'period',
-  'colon',
-  'semicolon',
-  'exclamation',
-  'question',
-  'paren',
-  'bracket',
-  'brace',
-  'angle',
-  'quote-double',
-  'quote-single',
-  'dash',
-  'ellipsis',
-  'tilde',
-  'slash',
-  'backslash',
-  'pipe',
-  'at',
-  'hash',
-  'dollar',
-  'percent',
-  'ampersand',
-  'asterisk',
-  'plus',
-  'equals',
-  'underscore',
-  'caret',
-  'backtick',
-  'middle-dot',
-  'corner-bracket',
-  'book-title',
-  'lenticular',
-] as const;
-
-type GroupId = (typeof GROUP_IDS)[number];
-
-const GROUP_LABELS: Record<GroupId, MessageKey> = {
+const GROUP_LABELS: Record<string, MessageKey> = {
   comma: 'symbols.group.comma',
   period: 'symbols.group.period',
   colon: 'symbols.group.colon',
@@ -90,12 +50,6 @@ const GROUP_LABELS: Record<GroupId, MessageKey> = {
   lenticular: 'symbols.group.lenticular',
 };
 
-function groupLabelKey(id: string): MessageKey | null {
-  return (GROUP_IDS as readonly string[]).includes(id)
-    ? GROUP_LABELS[id as GroupId]
-    : null;
-}
-
 type InspectorStatus = 'idle' | 'running' | 'done';
 
 export function InspectorPanel() {
@@ -114,9 +68,8 @@ export function InspectorPanel() {
     let cancelled = false;
     setStatus('running');
     const handle = setTimeout(() => {
+      // `null` means the document changed while the scan was running.
       void runSymbols().then((found) => {
-        // `null` means the document changed while the scan was running: the report would
-        // describe text that no longer exists.
         if (cancelled || found === null) return;
         setReport(found);
         setStatus('done');
@@ -160,8 +113,7 @@ export function InspectorPanel() {
           <h3 class="section-title">{t('symbols.related')}</h3>
           <ul class="group-list">
             {report.groups.map((group) => {
-              const key = groupLabelKey(group.id);
-              const occurring = group.members.filter((member) => member.count > 0);
+              const label = GROUP_LABELS[group.id];
               return (
                 <li
                   class={group.mixed ? 'group group--mixed' : 'group'}
@@ -169,28 +121,29 @@ export function InspectorPanel() {
                   data-testid={`symbol-group-${group.id}`}
                 >
                   <div class="group__head">
-                    <span class="group__label">{key === null ? group.id : t(key)}</span>
+                    <span class="group__label">{label === undefined ? group.id : t(label)}</span>
                     <span class={group.mixed ? 'badge badge--warn' : 'badge'}>
                       {group.mixed ? t('symbols.mixedBadge') : t('symbols.singleBadge')}
                     </span>
                   </div>
                   <div class="group__members">
-                    {occurring.map((member) => (
-                      <button
-                        type="button"
-                        class="chip"
-                        key={member.codePoint}
-                        title={`${member.codePoint} · ${t('symbols.locate')}`}
-                        onClick={() => locateFirst(member.char)}
-                      >
-                        <span class="chip__char">{member.char}</span>
-                        {/* In a mixed group the whole question is "which form is this", and
-                            。 / ． / . are nearly indistinguishable at chip size — so the code
-                            point is shown inline exactly where the ambiguity exists. */}
-                        {group.mixed ? <span class="chip__code">{member.codePoint}</span> : null}
-                        <span class="chip__count">{member.count}</span>
-                      </button>
-                    ))}
+                    {group.members
+                      .filter((member) => member.count > 0)
+                      .map((member) => (
+                        <button
+                          type="button"
+                          class="chip"
+                          key={member.codePoint}
+                          title={`${member.codePoint} · ${t('symbols.locate')}`}
+                          onClick={() => locateFirst(member.char)}
+                        >
+                          <span class="chip__char">{member.char}</span>
+                          {/* 。/．/. are nearly indistinguishable at chip size, so the code
+                              point is shown inline exactly where the ambiguity exists. */}
+                          {group.mixed ? <span class="chip__code">{member.codePoint}</span> : null}
+                          <span class="chip__count">{member.count}</span>
+                        </button>
+                      ))}
                   </div>
                 </li>
               );

@@ -1,14 +1,12 @@
 /**
- * Worker protocol for the analysis engine.
- *
- * Shared by `src/workers/analysis.worker.ts` and the coordinator in `src/app/appState.ts`.
- * Keeping the shape in one module is what makes the request/response pair type-check on both
- * sides of the `postMessage` boundary.
+ * Worker message contract, shared by `src/app/state.ts` and `src/workers/analysis.worker.ts`.
+ * Keeping it in one module is what makes the request/response pair type-check on both sides of
+ * the `postMessage` boundary.
  */
-import type { CountSettings } from '../core/rules';
+
+import type { CountSettings, TextStats } from '../core/count';
 import type { MatchResult } from '../core/search';
 import type { SymbolReport } from '../core/symbols';
-import type { TextStats } from '../core/count';
 
 export interface AnalyzeRequest {
   kind: 'analyze';

@@ -1,10 +1,11 @@
 /**
  * Interface language wiring.
  *
- * Two languages, a flat dictionary and a `{placeholder}` substitution — no i18n framework, in
- * line with the project's dependency budget. The selected language only affects the interface;
+ * Two languages, a flat dictionary and `{placeholder}` substitution — no i18n framework, in
+ * line with the project's dependency budget. The selected language affects the interface only;
  * it never changes the counting rules.
  */
+
 import { en } from './en';
 import { zhCN, type MessageKey, type Messages } from './zh-CN';
 
@@ -18,7 +19,6 @@ export const LOCALE_LABELS: Record<LocaleId, string> = {
   en: 'English',
 };
 
-/** Short labels for the compact top bar switcher. */
 export const LOCALE_SHORT_LABELS: Record<LocaleId, string> = {
   'zh-CN': '中文',
   en: 'EN',
@@ -50,5 +50,4 @@ export function numberLocale(locale: LocaleId): string {
   return locale === 'zh-CN' ? 'zh-CN' : 'en-US';
 }
 
-export { LOCALES as SUPPORTED_LOCALES };
 export type { MessageKey, Messages };

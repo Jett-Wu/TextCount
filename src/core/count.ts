@@ -1,82 +1,99 @@
 /**
- * The counting engine.
+ * The counting engine and the counting rules it implements.
  *
- * `analyzeText` performs exactly one classification pass over the code points of the text plus
- * one grapheme-cluster pass, and returns every number the UI can display. It never truncates,
- * samples or approximates: whatever the caller passes in is fully counted.
+ * `analyzeText` makes one classification pass over the code points plus one grapheme pass, and
+ * returns every number the interface can show. It never truncates, samples or approximates.
  *
- * ## Counting rules (the contract with the tests)
+ * These rules are the contract with `tests/unit/count.test.ts` and with the wording in
+ * `src/locales/`. Changing one means changing all three.
  *
- * **Grapheme characters** — user-perceived characters via `Intl.Segmenter`
- * (`granularity: 'grapheme'`), never `String.prototype.length`.
+ * - Characters: user-perceived characters via `Intl.Segmenter`, never `String.length`.
+ * - Whitespace: grapheme clusters made up entirely of `White_Space`; `graphemesNoWhitespace`
+ *   is `graphemes - whitespace` by construction.
+ * - Han: one per code point whose script is Han, including the extension and compatibility
+ *   blocks, plus U+3007 and U+3005. CJK punctuation (、。) is `Script=Common`, so it is counted
+ *   as punctuation and never as a Han character.
+ * - Kana: one per code point, plus the prolonged sound and iteration marks U+30FC/309D/309E/30FD/30FE.
+ * - Latin words: one per run of Latin letters; a single `'`, `’`, `‐` or `-` between letters
+ *   keeps the run together.
+ * - Digit runs: one per run of `\p{Nd}`; a single `.` or `,` between digits keeps it together.
+ * - Other scripts: space-separated word runs, one per run. Scripts written without spaces
+ *   (Thai, Lao, Khmer) cannot be segmented this way and are a documented limitation.
+ * - Punctuation: one per code point in category `P`. Emoji and other symbols are not
+ *   punctuation; they are still counted in the character totals.
  *
- * **Whitespace** — grapheme clusters made up entirely of Unicode `White_Space` code points.
- * `graphemesNoWhitespace = graphemes - whitespace` by construction.
- *
- * **Han characters** — one unit per code point whose Unicode script is `Han`. This includes the
- * CJK extension blocks (not just U+4E00–U+9FFF), the compatibility ideographs, U+3007 (〇) and
- * the iteration mark U+3005 (々). CJK punctuation such as 、。 is `Script=Common`, so it is
- * counted as punctuation and never as a Han character.
- *
- * **Kana** — one unit per Hiragana/Katakana code point, plus the prolonged sound mark U+30FC and
- * the iteration marks U+309D/309E/30FD/30FE, because those scripts are written without spaces.
- *
- * **Latin words** — one unit per run of `Script=Latin` letters. A single `'`, `’`, `‐` or `-`
- * between letters keeps the run together, so `don't` and `well-known` are one word each.
- *
- * **Digit runs** — one unit per run of decimal digits (`\p{Nd}`). A single `.` or `,` between
- * two digits keeps the run together, so `3.14` and `1,000` are one unit each.
- *
- * **Other words** — every other letter (Greek, Cyrillic, Arabic, Hangul, …) forms space-separated
- * word runs and counts one unit per run. Scripts that are written without spaces (Thai, Lao,
- * Khmer, Japanese beyond Kana) cannot be segmented reliably by this rule and are documented as a
- * known limitation rather than silently mis-counted.
- *
- * **Punctuation** — one unit per code point in Unicode category `P`. Emoji, currency, maths and
- * other symbols are *not* punctuation; they are still fully counted in the character totals and
- * are listed in the symbol inspector.
- *
- * The mixed ("字数") metric is:
- * `han + kana + latinWords + otherWords + (countDigitRuns ? digitRuns : 0) + (countPunctuation ? punctuation : 0)`
- * and it never includes whitespace, emoji or symbols.
+ * The mixed metric never includes whitespace, emoji or symbols:
+ *   han + kana + latinWords + otherWords + digits? + punctuation?
  */
 
-import type { CountSettings, PrimaryMetricId } from './rules';
 import { codePointLength, countGraphemesAndWhitespace } from './unicode';
 
-export interface TextStats {
-  /** Headline number, selected by `settings.primaryMetric`. */
-  primary: number;
-  /** Which metric `primary` currently reflects. */
+export type PrimaryMetricId = 'mixed' | 'han' | 'latinWords' | 'charsNoSpace';
+
+export interface CountSettings {
+  /** Which number the headline shows. */
   primaryMetric: PrimaryMetricId;
-  /** The mixed metric regardless of which metric is selected as `primary`. */
+  countDigitRuns: boolean;
+  countPunctuation: boolean;
+}
+
+export const PRIMARY_METRICS: readonly PrimaryMetricId[] = [
+  'mixed',
+  'han',
+  'latinWords',
+  'charsNoSpace',
+];
+
+export const DEFAULT_COUNT_SETTINGS: CountSettings = {
+  primaryMetric: 'mixed',
+  countDigitRuns: true,
+  countPunctuation: false,
+};
+
+/** Turns untrusted input (e.g. a value read back from storage) into valid settings. */
+export function normalizeCountSettings(value: unknown): CountSettings {
+  if (typeof value !== 'object' || value === null) return { ...DEFAULT_COUNT_SETTINGS };
+  const candidate = value as Record<string, unknown>;
+  const metric = candidate['primaryMetric'];
+  return {
+    primaryMetric: PRIMARY_METRICS.includes(metric as PrimaryMetricId)
+      ? (metric as PrimaryMetricId)
+      : DEFAULT_COUNT_SETTINGS.primaryMetric,
+    countDigitRuns:
+      typeof candidate['countDigitRuns'] === 'boolean'
+        ? candidate['countDigitRuns']
+        : DEFAULT_COUNT_SETTINGS.countDigitRuns,
+    countPunctuation:
+      typeof candidate['countPunctuation'] === 'boolean'
+        ? candidate['countPunctuation']
+        : DEFAULT_COUNT_SETTINGS.countPunctuation,
+  };
+}
+
+export interface TextStats {
+  primary: number;
+  primaryMetric: PrimaryMetricId;
   mixed: number;
   han: number;
   kana: number;
   latinWords: number;
   digitRuns: number;
-  /** Word runs in scripts other than Han, Kana and Latin. */
   otherWords: number;
-  /** Code points in Unicode category `P`. */
   punctuation: number;
-  /** User-perceived characters, including whitespace. */
   graphemes: number;
-  /** Whitespace grapheme clusters. */
   whitespace: number;
-  /** `graphemes - whitespace`. */
   graphemesNoWhitespace: number;
-  /** UTF-16 code units, exposed so the UI can explain why it differs from `graphemes`. */
   utf16Length: number;
   codePoints: number;
-  /** Number of explicit line breaks + 1 (0 for empty text). */
   lines: number;
-  /** Lines that contain at least one non-whitespace character; blank lines are not paragraphs. */
   paragraphs: number;
 }
 
-// Every pattern below needs the `u` flag: Unicode property escapes (`\p{...}`) are only
-// interpreted as properties in Unicode mode, and without it they silently degrade into literal
-// text that never matches.
+/**
+ * Every pattern needs the `u` flag. Without it `\p{...}` is not a property escape at all —
+ * it degrades into the literal text `p{...}`, which matches nothing and raises no error, so
+ * every non-ASCII count silently becomes zero.
+ */
 const WHITESPACE_RUN = /\p{White_Space}+/yu;
 const PUNCTUATION_AT = /\p{P}/yu;
 const HAN_RUN = /\p{Script=Han}+/yu;
@@ -87,12 +104,9 @@ const OTHER_WORD_RUN = /[\p{L}\p{M}\p{Nl}\p{Mn}\p{Mc}]+/yu;
 const ANY_PUNCTUATION = /\p{P}/u;
 
 /**
- * ASCII fast-path lookup: `1` only for ASCII code points whose Unicode general category is `P`.
- *
- * The set is derived from `\p{P}` at module load instead of being hand-written, because the
- * naive "0x21–0x2F is punctuation" range is wrong: `$` (Sc), `+` `<` `=` `>` `|` `~` (Sm) and
- * `^` `` ` `` (Sk) are symbols. Keeping the table authoritative means the fast path and the
- * non-ASCII path can never disagree about what counts as punctuation.
+ * ASCII fast path, derived from `\p{P}` at load rather than hand-written: the naive
+ * "0x21–0x2F is punctuation" range is wrong, because `$`, `+ < = > | ~` and `` ^ ` `` are
+ * symbols. Deriving it keeps the fast path and the Unicode path from ever disagreeing.
  */
 const ASCII_PUNCTUATION: Uint8Array = (() => {
   const table = new Uint8Array(0x80);
@@ -108,7 +122,6 @@ function matchEnd(pattern: RegExp, text: string, index: number): number {
   return match === null ? -1 : index + match[0].length;
 }
 
-/** Counts code points between two UTF-16 offsets without allocating a substring. */
 function countCodePointsInRange(text: string, start: number, end: number): number {
   let count = 0;
   for (let i = start; i < end; i++) {
@@ -131,10 +144,8 @@ function advanceCodePoint(text: string, index: number): number {
   return index + 1;
 }
 
-/**
- * Scans one Latin word starting at `start`, where `text[start]` is known to be a Latin letter.
- * ASCII-only words are resolved without touching a RegExp.
- */
+/** ASCII-only words are resolved without touching a RegExp; only a joiner or a non-ASCII
+ * letter can extend the run past it. */
 function scanLatinWord(text: string, start: number): number {
   const length = text.length;
   let i = start;
@@ -147,7 +158,6 @@ function scanLatinWord(text: string, start: number): number {
     break;
   }
   const next = i < length ? text.charCodeAt(i) : -1;
-  // Only a joiner or a non-ASCII letter can extend the word beyond the ASCII run.
   const mightExtend =
     next === 0x27 || next === 0x2d || next === 0x2019 || next === 0x2010 || next >= 0x80;
   if (!mightExtend) return i;
@@ -155,7 +165,6 @@ function scanLatinWord(text: string, start: number): number {
   return end > i ? end : i;
 }
 
-/** Scans one digit run starting at `start`, where `text[start]` is known to be an ASCII digit. */
 function scanDigitRun(text: string, start: number): number {
   const length = text.length;
   let i = start;
@@ -202,7 +211,6 @@ export function analyzeText(text: string, settings: CountSettings): TextStats {
   while (i < length) {
     const unit = text.charCodeAt(i);
 
-    // ---------------------------------------------------------------- ASCII
     if (unit < 0x80) {
       if ((unit >= 0x41 && unit <= 0x5a) || (unit >= 0x61 && unit <= 0x7a)) {
         i = scanLatinWord(text, i);
@@ -219,8 +227,7 @@ export function analyzeText(text: string, settings: CountSettings): TextStats {
       if (unit === 0x20 || (unit >= 0x09 && unit <= 0x0d)) {
         if (unit === 0x0d || unit === 0x0a) {
           lineBreaks++;
-          if (unit === 0x0d && text.charCodeAt(i + 1) === 0x0a) i += 2;
-          else i += 1;
+          i += unit === 0x0d && text.charCodeAt(i + 1) === 0x0a ? 2 : 1;
           if (lineHasContent) paragraphs++;
           lineHasContent = false;
           continue;
@@ -234,12 +241,10 @@ export function analyzeText(text: string, settings: CountSettings): TextStats {
         lineHasContent = true;
         continue;
       }
-      // Remaining C0/C1 controls carry no text content.
       i += 1;
       continue;
     }
 
-    // ------------------------------------------------------------ non-ASCII
     let end = matchEnd(WHITESPACE_RUN, text, i);
     if (end !== -1) {
       const codePoint = text.codePointAt(i) ?? 0;
@@ -300,8 +305,7 @@ export function analyzeText(text: string, settings: CountSettings): TextStats {
       continue;
     }
 
-    // Emoji, symbols, unassigned code points and anything else: fully counted as characters,
-    // but not part of any word or punctuation total.
+    // Emoji, symbols and unassigned code points: counted as characters, but not as words.
     i = advanceCodePoint(text, i);
   }
 
@@ -309,7 +313,6 @@ export function analyzeText(text: string, settings: CountSettings): TextStats {
 
   const graphemeCounts = countGraphemesAndWhitespace(text);
   const graphemesNoWhitespace = graphemeCounts.graphemes - graphemeCounts.whitespace;
-
   const mixed =
     han +
     kana +
@@ -358,7 +361,6 @@ function selectPrimary(
   }
 }
 
-/** Stats for an empty document; used as the initial UI state so nothing renders `undefined`. */
 export const EMPTY_STATS: TextStats = {
   primary: 0,
   primaryMetric: 'mixed',
@@ -377,8 +379,3 @@ export const EMPTY_STATS: TextStats = {
   lines: 0,
   paragraphs: 0,
 };
-
-/** True when `char` is a Unicode punctuation code point (category `P`). */
-export function isPunctuation(char: string): boolean {
-  return ANY_PUNCTUATION.test(char);
-}

@@ -1,14 +1,12 @@
 /**
  * Analysis worker.
  *
- * It owns no state of its own: every request carries the text it should analyse and the
- * revision-stamped id it belongs to. That keeps the worker free of any notion of "current
- * text", so a slow request can never be mistaken for a fresh result — the coordinator on the
- * main thread is the only place that decides which response is still relevant.
- *
- * The worker is created lazily and only for texts large enough that running the scan on the
- * main thread would be felt as input latency. See `src/app/appState.ts`.
+ * Holds no state of its own: every request carries the text to analyse and the id it belongs to.
+ * That keeps the worker free of any notion of "current text", so a slow request can never be
+ * mistaken for a fresh result — the coordinator in `src/app/state.ts` is the only place that
+ * decides which response is still relevant.
  */
+
 import { analyzeText } from '../core/count';
 import { findMatches } from '../core/search';
 import { analyzeSymbols } from '../core/symbols';

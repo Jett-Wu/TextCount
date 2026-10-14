@@ -1,4 +1,4 @@
-# PROJECT.md
+﻿# PROJECT.md
 
 ## 需求基线
 
@@ -79,15 +79,15 @@
 
 | ID | 能力 | 状态 | 证据 |
 |---|---|---|---|
-| R1 | 准确统计与口径切换 | 已验证 | `src/core/count.ts`、`tests/unit/count.test.ts`（37 例）、浏览器实测 `你好 AI 2026` → 字数 4 / 字符数 10 / 不含空白 8 |
+| R1 | 准确统计与口径切换 | 已验证 | `src/core/count.ts`、`tests/unit/count.test.ts`（36 例）、浏览器实测 `你好 AI 2026` → 字数 4 / 字符数 10 / 不含空白 8 |
 | R2 | 超长文本可用 | 已验证 | 浏览器实测 1,000,000 字符：输入同步开销 3 ms、统计 752 ms 内完成、`longtask` 观测为 0 条；见 DEVLOG D-006 |
 | R3 | 查找与多目标核对 | 已验证 | `src/core/search.ts`、`tests/unit/search.test.ts`（21 例）、浏览器实测 `aaaa` 查 `aa` = 2 处且选区落在 offset 24–26 |
-| R4 | 符号检查 | 已验证 | `src/core/symbols.ts`、`tests/unit/symbols.test.ts`（50 例）、浏览器实测半角 `(`/`)` + 全角 `（`/`）` 触发"存在不同形式"，而 `。` 单独出现时不误报 |
+| R4 | 符号检查 | 已验证 | `src/core/symbols.ts`、`tests/unit/symbols.test.ts`（54 例）、浏览器实测半角 `(`/`)` + 全角 `（`/`）` 触发"存在不同形式"，而 `。` 单独出现时不误报 |
 | R5 | 中英双语界面 | 已验证 | `src/locales/zh-CN.ts` / `en.ts`（类型强制同构）、浏览器实测切换语言后正文与选区不变 |
 | R6 | 视觉、深浅色、响应式、动效 | 已验证 | `src/styles/*.css`；浏览器实测 1264 px 与 390 px 视口无横向溢出，390 px 下编辑区 354 px、工具面板下移 |
 | R7 | 段落分布 / 词频 / 词云 | 未开始 | 明确为 P1，首版不阻塞 |
 | S1 | 打开即可粘贴并即时统计 | 已验证 | 无注册、无模式选择；`INLINE_ANALYSIS_LIMIT` 以内的文本在同一任务内出结果 |
-| S2 | 口径有定义且被回归覆盖 | 已验证 | `src/core/count.ts` 顶部规则注释 + `about.rules.*` 文案 + 132 个单元测试 |
+| S2 | 口径有定义且被回归覆盖 | 已验证 | `src/core/count.ts` 顶部规则注释 + `about.rules.*` 文案 + 121 个单元测试 |
 | S3 | 百万字符精确且不阻塞主线程 | 已验证 | 见 R2 证据 |
 | S4 | 静态子路径部署 | 部分完成 | `vite.config.ts` 的 `base: '/textcount/'`、`.github/workflows/deploy.yml` 已就绪；**尚未在真实 GitHub Pages 上跑过一次** |
 | S5 | 无网络请求、无正文持久化 | 已验证 | 构建产物无外部请求；真实刷新后 `textarea` 为空、`localStorage` 仅含 `textcount.locale` |
@@ -127,18 +127,25 @@ setText()  ──►  currentText（模块级唯一副本）+ revision++
 
 **主要组件：**
 
-- `src/core/`：纯计算层，无 DOM / 无框架 / 无 Node 依赖。`count.ts`（统计引擎）、
-  `unicode.ts`（字素与码位）、`search.ts`（字面量查找）、`symbols.ts`（标点分类）、
-  `rules.ts`（口径标识）。**统计正确性的唯一边界。**
-- `src/app/`：`appState.ts`（文本唯一副本、revision、任务协调、Worker 生命周期）、
-  `store.ts`（极简可观察 store + `useStore`）、`preferences.ts`（仅偏好持久化）、
-  `editorBridge.ts`（面板与 textarea 之间的唯一通道）、`locate.ts`、`format.ts`、`useTranslate.ts`。
-- `src/ui/`：`App.tsx` 装配；`editor/`、`stats/`、`search/`、`inspector/`、`common/`。
-- `src/workers/`：`analysis.worker.ts` 与 `protocol.ts`（请求/响应类型，两端共用）。
+- `src/core/`：纯计算层，无 DOM / 无框架 / 无 Node 依赖。**统计正确性的唯一边界。**
+  - `count.ts`：计数引擎 + 口径定义（`CountSettings`、`analyzeText`、`TextStats`）。
+  - `unicode.ts`：码位、字素簇与空白。
+  - `search.ts`：字面量查找与上下文摘录。
+  - `symbols.ts`：标点分类与"同一符号的不同形式"。
+- `src/app/`：与框架无关的状态与协调层。
+  - `state.ts`：可观察 store、**正文唯一副本**、`revision`、Worker 生命周期与任务协调、
+    偏好读写、i18n 与格式化 hook。
+  - `editor.ts`：面板与 `textarea` 之间的唯一通道（注册、定位、复制全文）。
+- `src/ui/`：`App.tsx`（外壳、顶栏、三个主数字、工具面板与关于弹窗）、`Editor.tsx`、
+  `StatsPanel.tsx`（详细数据 + 口径菜单）、`SearchPanel.tsx`、`InspectorPanel.tsx`、
+  `common.tsx`（数字显示、分段控件、弹窗）。
 - `src/locales/`：`zh-CN.ts` 为规范形状，`en.ts` 类型为 `Record<MessageKey, string>`，
   缺翻译会编译失败。
-- `src/styles/`：`tokens.css`（设计 Token，深色值有意重复两份）、`base.css`、`layout.css`、
-  `components.css`。
+- `src/workers/`：`analysis.worker.ts` 与 `protocol.ts`（请求/响应类型，两端共用）。
+- `src/styles/`：`tokens.css`（设计 Token，深色值有意重复两份）、`app.css`（重置、外壳布局、
+  组件）。
+
+> 应用刻意保持精简（20 个源文件）。新增代码优先并入既有模块，不要按"一个组件一个文件"继续拆分。
 
 **重要接口或 schema：**
 
@@ -148,7 +155,7 @@ setText()  ──►  currentText（模块级唯一副本）+ revision++
 - `analyzeSymbols(text): SymbolReport` — `src/core/symbols.ts`。`categories` 为互斥四分类，
   `groups` 为"同一符号的不同形式"视图，`mixed` 表示出现形式跨越了多个分类。
 - `WorkerRequest` / `WorkerResponse` — `src/workers/protocol.ts`。`postMessage` 边界的两端契约。
-- `AppState` — `src/app/appState.ts`。**不含正文**，只含派生的小值。
+- `AppState` — `src/app/state.ts`。**不含正文**，只含派生的小值。
 
 **当前生效的技术选型：**
 
