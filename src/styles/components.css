@@ -176,6 +176,16 @@
   gap: var(--space-3);
 }
 
+/*
+ * `.panel-body` already spaces its children with `gap`, so the block-level margins these
+ * elements carry for standalone use (inside the dialog and the rule card) are cancelled here.
+ * Without this the heading and the rules button each get roughly double spacing.
+ */
+.panel-body > .section-title,
+.panel-body > .btn--wide {
+  margin-bottom: 0;
+}
+
 .hint {
   font-size: var(--size-meta);
   color: var(--text-muted);
@@ -456,6 +466,18 @@
   padding: var(--space-3);
 }
 
+.context--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
+}
+
+.context__empty {
+  font-size: var(--size-control);
+  color: var(--text-muted);
+}
+
 .context__text {
   font-size: var(--size-control);
   line-height: 1.7;
@@ -553,6 +575,13 @@
 .chip__char {
   font-size: 15px;
   line-height: 1.2;
+}
+
+.chip__code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: -0.01em;
+  color: var(--text-faint);
 }
 
 .chip__count {

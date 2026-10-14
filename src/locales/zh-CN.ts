@@ -53,11 +53,13 @@ export const zhCN = {
   'stats.rules.digitRuns': '连续数字串计 1 个单位',
   'stats.rules.punctuation': '每个标点符号计 1 个单位',
   'stats.rules.note': '切换口径不会修改或清空文本。',
-  'stats.rules.mixedExplanation':
-    '中英混合字数 = 每个汉字 1 + 每个假名 1 + 每个连续的英文单词 1 + 每个连续数字串 1（可关闭）+ 其他文字按空格分词的词数。标点、空白与 Emoji 默认不计入。',
-  'stats.rules.charExplanation':
-    '字符数按用户感知字符（Unicode 字素簇）统计。Emoji、组合字符、旗帜等会作为一个字符计。UTF-16 长度是编程意义上的长度，仅供排查差异。',
-  'stats.rules.paragraphExplanation': '段落按纯文本中的显式换行分隔，空行不计入段落数。',
+  'stats.rules.options': '计入选项',
+  'stats.rules.explain.mixed':
+    '每个汉字 1 + 每个假名 1 + 每个连续的英文单词 1 + 每个连续数字串 1（可关闭）+ 其他文字按空格分词的词数。标点、空白与 Emoji 默认不计入。',
+  'stats.rules.explain.han': '字数按 Unicode 文字系统为 Han 的字符计算，每个计 1，包含扩展区与兼容表意文字。',
+  'stats.rules.explain.latinWords': '字数按连续的拉丁字母计算，每组计 1 个词；词内的撇号与连字符不断开。',
+  'stats.rules.explain.charsNoSpace':
+    '字数按用户感知字符（Unicode 字素簇）统计后剔除空白；Emoji、组合字符与旗帜各算一个字符。',
 
   'editor.placeholder': '粘贴或输入文本，即刻统计',
   'editor.ariaLabel': '文本输入区',
@@ -84,6 +86,7 @@ export const zhCN = {
   'search.matchOne': '{n} 处',
   'search.matchMany': '{n} 处',
   'search.noMatch': '无匹配',
+  'search.noMatchDetail': '该目标在全文都没有出现，无需核对。',
   'search.prev': '上一处',
   'search.next': '下一处',
   'search.position': '第 {index} / {total} 处',

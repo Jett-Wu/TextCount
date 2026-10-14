@@ -86,9 +86,29 @@ export function SearchPanel() {
     setActiveMatch(0);
   };
 
+  /**
+   * Makes `termIndex` the active target and reveals its first match.
+   *
+   * A term with zero matches must still become active: the user added it precisely to confirm
+   * that it is absent, so the panel has to be able to show "no match" for it. Only the
+   * scroll-and-select part is conditional.
+   */
+  const selectTerm = (termIndex: number): void => {
+    setActiveTerm(termIndex);
+    setActiveMatch(0);
+    const result = results[termIndex];
+    const start = result?.positions[0];
+    if (result === undefined || start === undefined) return;
+    const length = result.lengths[0] ?? result.term.length;
+    revealRange(start, start + length);
+  };
+
   const step = (termIndex: number, delta: number): void => {
     const result = results[termIndex];
-    if (result === undefined || result.positions.length === 0) return;
+    if (result === undefined || result.positions.length === 0) {
+      selectTerm(termIndex);
+      return;
+    }
     const count = result.positions.length;
     const base = termIndex === safeTerm ? safeMatch : 0;
     const next = (((base + delta) % count) + count) % count;
@@ -162,7 +182,7 @@ export function SearchPanel() {
                 <button
                   type="button"
                   class="term__button"
-                  onClick={() => step(index, 0)}
+                  onClick={() => selectTerm(index)}
                   title={t('search.locate')}
                 >
                   <span class="term__text">{term}</span>
@@ -213,6 +233,12 @@ export function SearchPanel() {
           );
         })}
       </ul>
+
+      {activeResult !== undefined && activeResult.count === 0 && status === 'done' ? (
+        <div class="context context--empty" data-testid="search-context-empty">
+          <span class="context__empty">{t('search.noMatchDetail')}</span>
+        </div>
+      ) : null}
 
       {context !== null ? (
         <div class="context" data-testid="search-context">

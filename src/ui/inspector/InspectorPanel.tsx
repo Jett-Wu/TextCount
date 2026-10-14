@@ -184,6 +184,10 @@ export function InspectorPanel() {
                         onClick={() => locateFirst(member.char)}
                       >
                         <span class="chip__char">{member.char}</span>
+                        {/* In a mixed group the whole question is "which form is this", and
+                            。 / ． / . are nearly indistinguishable at chip size — so the code
+                            point is shown inline exactly where the ambiguity exists. */}
+                        {group.mixed ? <span class="chip__code">{member.codePoint}</span> : null}
                         <span class="chip__count">{member.count}</span>
                       </button>
                     ))}

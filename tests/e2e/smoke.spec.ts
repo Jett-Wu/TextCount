@@ -182,6 +182,34 @@ test.describe('find and multi-target checking', () => {
     await expect(terms.nth(0).locator('.term__count')).toHaveText('1 match');
     await expect(terms.nth(1).locator('.term__count')).toHaveText('1 match');
   });
+
+  test('a target with no matches can still be selected and reports its empty result', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await setText(page, '今天天气很好。');
+    await page.locator('#textcount-tab-search').click();
+
+    for (const term of ['天气', '不存在的词']) {
+      await page.locator('.search-form .input').fill(term);
+      await page.locator('.search-form .btn--primary').click();
+      await page.waitForTimeout(250);
+    }
+
+    const terms = page.locator('[data-testid="search-term"]');
+    await expect(terms.nth(1).locator('.term__count')).toHaveText('No match');
+
+    // Selecting the zero-match target must work: the user added it to confirm it is absent, so
+    // the panel has to be able to say so rather than silently ignoring the click.
+    await terms.nth(1).locator('.term__button').click();
+    await expect(terms.nth(1)).toHaveClass(/term--active/);
+    await expect(page.locator('[data-testid="search-context-empty"]')).toBeVisible();
+
+    // And the hitting target still navigates normally afterwards.
+    await terms.nth(0).locator('.term__button').click();
+    await expect(terms.nth(0)).toHaveClass(/term--active/);
+    await expect(page.locator('[data-testid="search-context"]')).toBeVisible();
+  });
 });
 
 test.describe('full-width / half-width inspection', () => {

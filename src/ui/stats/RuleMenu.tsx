@@ -18,6 +18,20 @@ const METRIC_LABEL: Record<PrimaryMetricId, MessageKey> = {
   charsNoSpace: 'stats.rules.primary.charsNoSpace',
 };
 
+/**
+ * One explanation at a time, matching the metric actually selected.
+ *
+ * Showing all four at once turned the menu into a wall of small print and pushed the numbers off
+ * screen; showing the relevant one keeps the promise that the user can always see what the
+ * headline number is counting, without a wall of text nobody reads.
+ */
+const METRIC_EXPLANATION: Record<PrimaryMetricId, MessageKey> = {
+  mixed: 'stats.rules.explain.mixed',
+  han: 'stats.rules.explain.han',
+  latinWords: 'stats.rules.explain.latinWords',
+  charsNoSpace: 'stats.rules.explain.charsNoSpace',
+};
+
 export function RuleMenu() {
   const t = useTranslate();
   const settings = useStore(appStore, (state) => state.countSettings);
@@ -44,8 +58,10 @@ export function RuleMenu() {
         ))}
       </fieldset>
 
+      <p class="rules__explain">{t(METRIC_EXPLANATION[settings.primaryMetric])}</p>
+
       <fieldset class="rules__group">
-        <legend class="rules__legend">{t('stats.detail')}</legend>
+        <legend class="rules__legend">{t('stats.rules.options')}</legend>
         <label class="rules__option">
           <input
             type="checkbox"
@@ -65,9 +81,6 @@ export function RuleMenu() {
       </fieldset>
 
       <p class="rules__note">{t('stats.rules.note')}</p>
-      <p class="rules__explain">{t('stats.rules.mixedExplanation')}</p>
-      <p class="rules__explain">{t('stats.rules.charExplanation')}</p>
-      <p class="rules__explain">{t('stats.rules.paragraphExplanation')}</p>
     </div>
   );
 }

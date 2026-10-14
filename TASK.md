@@ -85,12 +85,17 @@
 
 - `npm run typecheck` → 通过（无输出）。
 - `npm test`（Vitest 5.0.4）→ 通过，**132 passed / 4 files**。
-- `npm run build` → 通过：`dist/index.html` 2.02 kB、`index.js` 60.86 kB（gzip 22.24 kB）、
-  `index.css` 17.81 kB（gzip 3.96 kB）、`analysis.worker.js` 8.51 kB。
+- `npm run build` → 通过：`dist/index.html` 2.02 kB、`index.js` 61.63 kB（gzip 22.35 kB）、
+  `index.css` 18.14 kB（gzip 4.00 kB）、`analysis.worker.js` 8.51 kB。
 - `npm run check`（类型 + 测试 + 构建）→ 通过。
-- 真实 Chromium（`vite preview`，`http://127.0.0.1:4173/textcount/`）人工与脚本检查 →
-  计数、查找、符号检查、语言切换、主题切换、390 px 响应式、1,000,000 字符压力全部通过；
-  测量数据记录在 `DEVLOG.md` D-006。
+- `npm run test:e2e`（Playwright，对生产构建跑在真实 `/textcount/` 子路径下）→ 通过，
+  **16 passed**。
+- 真实 Chromium（`vite preview`）人工与脚本检查 → 计数、查找、符号检查、语言切换、主题切换、
+  IME 组合输入、两步清空、390 px 响应式、1,000,000 字符压力全部通过；测量数据记录在 `DEVLOG.md`
+  D-006。
+- **逐状态视觉走查**（空 / 有文 / 口径菜单 / 查找命中 / 查找零命中 / 符号检查 / 关于；
+  深色与浅色；1300 px 与 390 px）→ 发现并修正 4 个界面问题（零命中目标不可选中、面板间距叠加、
+  相似符号缺少码位、口径说明过长），规则与证据记录在 `DEVLOG.md` D-010，截图在 `.verify/`。
 - 高风险项审查：计数口径与 Unicode 分类由 `tests/unit/count.test.ts`、`unicode.test.ts` 的
   边界样例覆盖（Emoji ZWJ、旗帜、肤色修饰符、CRLF、CJK 扩展 B、全角数字等）；符号分类的
   `mixed` 语义经专项复核并修正（DEVLOG D-004）；隐私边界由刷新验证与构建产物检查确认

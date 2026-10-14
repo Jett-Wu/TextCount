@@ -55,12 +55,15 @@ export const en: Messages = {
   'stats.rules.digitRuns': 'Count a run of digits as one unit',
   'stats.rules.punctuation': 'Count every punctuation mark as one unit',
   'stats.rules.note': 'Changing the rules never edits or clears your text.',
-  'stats.rules.mixedExplanation':
-    'Mixed count = 1 per Han character + 1 per kana character + 1 per English word + 1 per run of digits (optional) + 1 per word in other scripts. Punctuation, whitespace and emoji are excluded by default.',
-  'stats.rules.charExplanation':
-    'Characters are counted as user-perceived characters (Unicode grapheme clusters), so an emoji or an accented letter counts once. UTF-16 length is the programming length, shown only to explain differences.',
-  'stats.rules.paragraphExplanation':
-    'Paragraphs are separated by explicit line breaks in the plain text; blank lines are not counted.',
+  'stats.rules.options': 'Counted in the headline number',
+  'stats.rules.explain.mixed':
+    '1 per Han character + 1 per kana character + 1 per English word + 1 per run of digits (optional) + 1 per word in other scripts. Punctuation, whitespace and emoji are excluded by default.',
+  'stats.rules.explain.han':
+    'Counts code points whose Unicode script is Han, one each, including the extension and compatibility blocks.',
+  'stats.rules.explain.latinWords':
+    'Counts each run of Latin letters as one word; apostrophes and hyphens inside a word do not split it.',
+  'stats.rules.explain.charsNoSpace':
+    'Counts user-perceived characters (Unicode grapheme clusters) and excludes whitespace; an emoji, a flag or an accented letter counts once.',
 
   'editor.placeholder': 'Paste or type text to count it instantly',
   'editor.ariaLabel': 'Text input',
@@ -87,6 +90,7 @@ export const en: Messages = {
   'search.matchOne': '{n} match',
   'search.matchMany': '{n} matches',
   'search.noMatch': 'No match',
+  'search.noMatchDetail': 'This target does not appear anywhere in the text.',
   'search.prev': 'Previous',
   'search.next': 'Next',
   'search.position': 'Match {index} of {total}',
