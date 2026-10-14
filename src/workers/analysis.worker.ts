@@ -8,6 +8,7 @@
  */
 
 import { analyzeText } from '../core/count';
+import { analyzeFrequency, analyzeParagraphs } from '../core/insights';
 import { findMatches } from '../core/search';
 import { analyzeSymbols } from '../core/symbols';
 import type { WorkerRequest, WorkerResponse } from './protocol';
@@ -47,6 +48,18 @@ scope.onmessage = (event: MessageEvent<WorkerRequest>): void => {
           kind: 'symbols',
           id: request.id,
           report: analyzeSymbols(request.text),
+        });
+        return;
+      case 'insights':
+        scope.postMessage({
+          kind: 'insights',
+          id: request.id,
+          paragraphs: analyzeParagraphs(request.text),
+          frequency: analyzeFrequency(request.text, {
+            unit: request.unit,
+            filterStopWords: request.filterStopWords,
+            maxEntries: request.maxEntries,
+          }),
         });
         return;
       default:

@@ -21,11 +21,12 @@ import {
 } from '../app/state';
 import { NumberValue, Segmented } from './common';
 import { Editor } from './Editor';
+import { InsightsPanel } from './InsightsPanel';
 import { InspectorPanel } from './InspectorPanel';
 import { SearchPanel } from './SearchPanel';
 import { StatsPanel } from './StatsPanel';
 
-const TOOLS: readonly ToolId[] = ['stats', 'search', 'symbols'];
+const TOOLS: readonly ToolId[] = ['stats', 'search', 'symbols', 'insights'];
 
 function TopBar() {
   const t = useTranslate();
@@ -161,8 +162,8 @@ function Tools() {
         {active === 'stats' ? <StatsPanel /> : null}
         {active === 'search' ? <SearchPanel /> : null}
         {active === 'symbols' ? <InspectorPanel /> : null}
-      </div>
-    </aside>
+        {active === 'insights' ? <InsightsPanel /> : null}
+      </div>    </aside>
   );
 }
 
@@ -170,6 +171,7 @@ export function App() {
   const t = useTranslate();
   const locale = useLocale();
   const ruleMenuOpen = useStore(appStore, (state) => state.ruleMenuOpen);
+  const insightsOpen = useStore(appStore, (state) => state.activeTool === 'insights');
 
   useEffect(() => {
     document.documentElement.setAttribute('lang', locale);
@@ -192,7 +194,7 @@ export function App() {
     <div class="app">
       <TopBar />
       <Stats />
-      <main class="workspace">
+      <main class={insightsOpen ? 'workspace workspace--insights' : 'workspace'}>
         <Editor />
         <Tools />
       </main>

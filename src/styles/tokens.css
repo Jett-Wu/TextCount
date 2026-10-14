@@ -60,6 +60,7 @@
   --content-max: 1360px;
   --gutter: 32px;
   --sidebar-width: 348px;
+  --sidebar-width-wide: 440px;
   --col-gap: 24px;
 
   /* Type — one scale, used consistently */

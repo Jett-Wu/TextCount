@@ -215,6 +215,16 @@ select {
   padding-bottom: var(--space-5);
 }
 
+/*
+ * The word cloud is the one view the design reference says must not be squeezed into a narrow
+ * sidebar, so the insights tool gets a wider column. It is a deliberate, one-off change per tool
+ * switch rather than an animation: transitioning the column would reflow the editor on every
+ * frame for no benefit.
+ */
+.workspace--insights {
+  grid-template-columns: minmax(0, 1fr) var(--sidebar-width-wide);
+}
+
 /* ------------------------------------------------------------------ editor */
 
 .editor {
@@ -1038,6 +1048,118 @@ select {
   gap: var(--space-1);
 }
 
+/* ------------------------------------------------------------------ paragraph and frequency bars */
+
+.metrics--inline {
+  gap: 0;
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.bars__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 26px;
+  padding: 2px var(--space-1);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color var(--dur-tap) var(--ease);
+}
+
+.bars__row:hover {
+  background: var(--surface-hover);
+}
+
+.bars__index {
+  flex: none;
+  width: 24px;
+  font-size: var(--size-micro);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.bars__term {
+  flex: 0 1 auto;
+  max-width: 42%;
+  font-size: var(--size-control);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bars__track {
+  flex: 1;
+  min-width: 12px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.bars__fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  opacity: 0.55;
+}
+
+.bars__value {
+  flex: none;
+  min-width: 34px;
+  font-size: var(--size-micro);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.cloud {
+  min-height: 180px;
+}
+
+.cloud__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: var(--text);
+}
+
+.cloud__word {
+  cursor: pointer;
+}
+
+.cloud__word text {
+  transition:
+    fill-opacity var(--dur-tap) var(--ease),
+    fill var(--dur-tap) var(--ease);
+}
+
+/*
+ * The size already encodes frequency, so a hovered word is emphasised by ink, not by scale.
+ * The rule targets the `<text>`, not the group: an explicit `fill` presentation attribute on the
+ * child beats a value inherited from the parent.
+ */
+.cloud__word:hover text,
+.cloud__word:focus-visible text {
+  fill: var(--accent);
+  fill-opacity: 1;
+}
+
+.cloud__word:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* ------------------------------------------------------------------ responsive
  *
  * Every media query lives at the end of the file on purpose: these rules override the base
@@ -1049,6 +1171,9 @@ select {
   :root {
     --gutter: 24px;
     --sidebar-width: 320px;
+    /* Below this width the wider insights column would eat the editor, so the cloud gets the
+       ordinary sidebar and drops however many words do not fit (and says so). */
+    --sidebar-width-wide: 380px;
   }
 }
 

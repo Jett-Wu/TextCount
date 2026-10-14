@@ -42,9 +42,15 @@ npm run preview
 npm run check
 
 # 端到端测试（首次需要下载浏览器）
-npx playwright install chromium
-npm run test:e2e
+npx playwright install chromium           # 全引擎回归：npx playwright install（含 firefox/webkit）
+npm run test:e2e                          # 只跑 Chromium（默认）
+E2E_ALL_BROWSERS=1 npm run test:e2e       # Chromium + Firefox + WebKit
 ```
+
+> **跑 E2E 前先关掉自己手动启动的 `npm run preview`。** Playwright 配置里
+> `reuseExistingServer` 为真，会直接复用已在 4173 端口上的服务器并**跳过重新构建**，
+> 于是测试跑的是旧产物：新写的用例会以"元素找不到"超时失败，看起来像代码有问题。
+> 这是实际踩过的坑，不是理论风险。
 
 ## 规则
 

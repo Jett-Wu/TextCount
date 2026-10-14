@@ -15,6 +15,13 @@
 
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { EMPTY_STATS, analyzeText, normalizeCountSettings, type CountSettings, type TextStats } from '../core/count';
+import {
+  analyzeFrequency,
+  analyzeParagraphs,
+  type FrequencyReport,
+  type FrequencyUnit,
+  type ParagraphReport,
+} from '../core/insights';
 import { DEFAULT_MAX_POSITIONS, findMatchesMany, type MatchResult } from '../core/search';
 import { analyzeSymbols, type SymbolReport } from '../core/symbols';
 import {
@@ -26,7 +33,7 @@ import {
 import type { WorkerRequest, WorkerResponse } from '../workers/protocol';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
-export type ToolId = 'stats' | 'search' | 'symbols';
+export type ToolId = 'stats' | 'search' | 'symbols' | 'insights';
 
 /** Documents at or below this size are analysed inline; measured well under one frame. */
 export const INLINE_ANALYSIS_LIMIT = 20_000;
@@ -413,6 +420,64 @@ export async function runSymbols(): Promise<SymbolReport | null> {
   } catch {
     const report = analyzeSymbols(text);
     return forRevision === revision ? report : null;
+  }
+}
+
+export interface InsightsResult {
+  paragraphs: ParagraphReport;
+  frequency: FrequencyReport;
+}
+
+/** Terms rendered in the ranking and offered to the cloud. Bounded on purpose. */
+export const MAX_FREQUENCY_ENTRIES = 120;
+
+/**
+ * P1 analysis: paragraph distribution and word frequency. Same contract as `runFind` and
+ * `runSymbols` — `null` means the document changed while this was running, so the caller
+ * discards the result rather than showing numbers for text that no longer exists.
+ */
+export async function runInsights(
+  unit: FrequencyUnit,
+  filterStopWords: boolean,
+): Promise<InsightsResult | null> {
+  const text = currentText;
+  const forRevision = revision;
+
+  const locally = (): InsightsResult => ({
+    paragraphs: analyzeParagraphs(text),
+    frequency: analyzeFrequency(text, {
+      unit,
+      filterStopWords,
+      maxEntries: MAX_FREQUENCY_ENTRIES,
+    }),
+  });
+
+  if (text.length <= INLINE_ANALYSIS_LIMIT) {
+    const result = locally();
+    return forRevision === revision ? result : null;
+  }
+
+  const instance = getWorker();
+  if (instance === null) {
+    const result = locally();
+    return forRevision === revision ? result : null;
+  }
+
+  try {
+    const response = await postToWorker(instance, {
+      kind: 'insights',
+      text,
+      unit,
+      filterStopWords,
+      maxEntries: MAX_FREQUENCY_ENTRIES,
+    });
+    if (response.kind !== 'insights') return null;
+    return forRevision === revision
+      ? { paragraphs: response.paragraphs, frequency: response.frequency }
+      : null;
+  } catch {
+    const result = locally();
+    return forRevision === revision ? result : null;
   }
 }
 

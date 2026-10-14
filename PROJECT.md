@@ -85,6 +85,10 @@
   不新增业务功能、不改统计引擎、不引入 UI/动画/图表库与在线字体；R1–R7、N1–N6、S1–S6、
   C1–C7 全部保持不变。R6 的验收口径以本任务书第 10 节的清单为准（多视口、浅深色分别审查、
   空状态、触控热区、安全区）。
+- **A4 — 2026-10-14：** 用户要求"把所有任务和功能实现"，据此把 R7 从"首版不阻塞的后续方向"
+  提升为本轮交付范围并已实现（段落长度分布、词频排行、词云）。UI 2.0 任务书 §2.3 曾把
+  "全新词云/词频/段落分析模块"排除在**那一轮 UI 重构**之外；本次是实现，不是对 R7 内容
+  的修改——R7 的范围、S3 的性能要求与 C1–C6 的约束全部照旧。
 
 ## 能力清单
 
@@ -96,7 +100,7 @@
 | R4 | 符号检查 | 已验证 | `src/core/symbols.ts`、`tests/unit/symbols.test.ts`（54 例）、浏览器实测半角 `(`/`)` + 全角 `（`/`）` 触发"存在不同形式"，而 `。` 单独出现时不误报 |
 | R5 | 中英双语界面 | 已验证 | `src/locales/zh-CN.ts` / `en.ts`（类型强制同构）、浏览器实测切换语言后正文与选区不变 |
 | R6 | 视觉、深浅色、响应式、动效 | 已验证 | 设计 Token 单一来源（`src/styles/tokens.css`，无未使用项）；21 视口矩阵无横向溢出、主字数始终最突出、浅深色分别审查；25 个 E2E（含英文窄屏布局与主题切换）；见 DEVLOG D-012、D-015 |
-| R7 | 段落分布 / 词频 / 词云 | 未开始 | 明确为 P1，首版不阻塞 |
+| R7 | 段落长度分布 / 词频排行 / 词云 | 已验证 | `src/core/insights.ts`（24 例单测）、`src/ui/InsightsPanel.tsx`、`src/ui/WordCloud.tsx`（自研确定性布局，独立 chunk 1.54 kB gzip）；100 万字符单字词频 423 ms、`longtask` 0 条；见 DEVLOG D-016 |
 | S1 | 打开即可粘贴并即时统计 | 已验证 | 无注册、无模式选择；`INLINE_ANALYSIS_LIMIT` 以内的文本在同一任务内出结果 |
 | S2 | 口径有定义且被回归覆盖 | 已验证 | `src/core/count.ts` 顶部规则注释 + 统计面板"统计口径"菜单的 `stats.rules.explain.*` 文案 + 121 个单元测试 |
 | S3 | 百万字符精确且不阻塞主线程 | 已验证 | 见 R2 证据 |
@@ -143,20 +147,24 @@ setText()  ──►  currentText（模块级唯一副本）+ revision++
   - `unicode.ts`：码位、字素簇与空白。
   - `search.ts`：字面量查找与上下文摘录。
   - `symbols.ts`：标点分类与"同一符号的不同形式"。
+  - `insights.ts`：P1 分析——段落索引与分布、词语/单字频率（`Intl.Segmenter` 分词、
+    内置虚词表、可降级）。
 - `src/app/`：与框架无关的状态与协调层。
   - `state.ts`：可观察 store、**正文唯一副本**、`revision`、Worker 生命周期与任务协调、
     偏好读写、i18n 与格式化 hook。
   - `editor.ts`：面板与 `textarea` 之间的唯一通道（注册、定位、复制全文）。
 - `src/ui/`：`App.tsx`（外壳、顶栏、三个主数字、工具切换与面板槽位）、`Editor.tsx`
   （文本工作区卡片：表头 + 输入 + 本地处理说明）、`StatsPanel.tsx`（口径菜单 + 分组明细 + 空状态）、
-  `SearchPanel.tsx`、`InspectorPanel.tsx`、`common.tsx`（数字显示、分段控件）。
+  `SearchPanel.tsx`、`InspectorPanel.tsx`、`InsightsPanel.tsx`（段落 / 词频 / 词云）、
+  `WordCloud.tsx`（**懒加载**的自研布局与 SVG 渲染）、`common.tsx`（数字显示、分段控件）。
 - `src/locales/`：`zh-CN.ts` 为规范形状，`en.ts` 类型为 `Record<MessageKey, string>`，
   缺翻译会编译失败。
 - `src/workers/`：`analysis.worker.ts` 与 `protocol.ts`（请求/响应类型，两端共用）。
 - `src/styles/`：`tokens.css`（设计 Token：语义化颜色、字阶、间距、圆角、动效；深色值有意重复
   两份）、`app.css`（重置、外壳、组件，**所有媒体查询集中在文件末尾**）。
 
-> 应用刻意保持精简（20 个源文件）。新增代码优先并入既有模块，不要按"一个组件一个文件"继续拆分。
+> 应用刻意保持精简（23 个源文件）。新增代码优先并入既有模块，不要按"一个组件一个文件"继续拆分。
+> 例外是 `WordCloud.tsx`：它必须单独成文件才能被 `import()` 懒加载，从而不进入首屏包。
 
 **重要接口或 schema：**
 
@@ -184,7 +192,8 @@ setText()  ──►  currentText（模块级唯一副本）+ revision++
   `PROJECT.md`/`DEVLOG.md` 记录候选降级方案为"全文保留内存 + 只读分段预览"（见方案 §7.5）。
 - **真实部署未验证**：`base: '/textcount/'` 与 workflow 已就绪，但没有在真实 GitHub Pages
   子路径下跑过一次，S4 保持"部分完成"。
-- **跨浏览器一致性**：`Intl.Segmenter` 与 Unicode 属性的行为差异只在 Chromium 上实测过；
-  Firefox / WebKit 回归尚未执行（Playwright 配置已就绪）。
+- **跨浏览器一致性**：Chromium / Firefox / WebKit 的 30 个 E2E 用例已全部通过（90/90）。
+  但**中文分词结果确实随引擎而异**：Chromium 的 ICU 做词典分词，Firefox 退化为逐字。
+  这是浏览器的能力差异而非缺陷，界面已给出说明文案，词频测试也只断言引擎无关的性质。
 - **无空格分词语言**（泰语、老挝语、高棉语）在混合字数中会被当作一个很长的"词"，已在界面
   与本文档中标注为已知限制，未静默忽略。

@@ -5,6 +5,7 @@
  */
 
 import type { CountSettings, TextStats } from '../core/count';
+import type { FrequencyReport, FrequencyUnit, ParagraphReport } from '../core/insights';
 import type { MatchResult } from '../core/search';
 import type { SymbolReport } from '../core/symbols';
 
@@ -30,7 +31,21 @@ export interface SymbolsRequest {
   text: string;
 }
 
-export type WorkerRequest = AnalyzeRequest | FindRequest | SymbolsRequest;
+export interface InsightsRequest {
+  kind: 'insights';
+  id: number;
+  text: string;
+  /** Flattened rather than optional: `postMessage` payloads should not carry absent fields. */
+  unit: FrequencyUnit;
+  filterStopWords: boolean;
+  maxEntries: number;
+}
+
+export type WorkerRequest =
+  | AnalyzeRequest
+  | FindRequest
+  | SymbolsRequest
+  | InsightsRequest;
 
 export interface AnalyzeResponse {
   kind: 'analyze';
@@ -50,10 +65,22 @@ export interface SymbolsResponse {
   report: SymbolReport;
 }
 
+export interface InsightsResponse {
+  kind: 'insights';
+  id: number;
+  paragraphs: ParagraphReport;
+  frequency: FrequencyReport;
+}
+
 export interface WorkerErrorResponse {
   kind: 'error';
   id: number;
   message: string;
 }
 
-export type WorkerResponse = AnalyzeResponse | FindResponse | SymbolsResponse | WorkerErrorResponse;
+export type WorkerResponse =
+  | AnalyzeResponse
+  | FindResponse
+  | SymbolsResponse
+  | InsightsResponse
+  | WorkerErrorResponse;

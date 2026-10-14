@@ -420,6 +420,9 @@ test.describe('accessibility basics', () => {
     await page.keyboard.press('ArrowRight');
     await expect(page.locator('#textcount-tab-symbols')).toHaveAttribute('aria-selected', 'true');
     await page.keyboard.press('ArrowRight');
+    await expect(page.locator('#textcount-tab-insights')).toHaveAttribute('aria-selected', 'true');
+    // Wraps around to the first tool.
+    await page.keyboard.press('ArrowRight');
     await expect(page.locator('#textcount-tab-stats')).toHaveAttribute('aria-selected', 'true');
   });
 });
@@ -428,6 +431,160 @@ test.describe('accessibility basics', () => {
  * The layout has to hold up on the devices people actually use, and the failure modes are
  * silent: nothing errors, the page just overflows or pushes the tools below the fold.
  */
+test.describe('insights', () => {
+  const MULTI = [
+    '第一段很短。',
+    '',
+    '第二段稍微长一些，用来验证段落长度的排序与定位是否对得上原文。',
+    '',
+    '工具 工具 工具 工具 工具。',
+    '工具 和 汉字 汉字 汉字。',
+  ].join('\n');
+
+  test('reports paragraph distribution and reveals a paragraph on click', async ({ page }) => {
+    await page.goto('/');
+    await setText(page, MULTI);
+    await page.locator('#textcount-tab-insights').click();
+
+    // 4 paragraphs, 2 blank lines: the two empty lines between blocks.
+    await expect(page.locator('[data-testid="panel-insights"] .metrics__row').nth(0)).toContainText(
+      '4',
+    );
+    const rows = page.locator('.bars__row');
+    await expect(rows).toHaveCount(4);
+
+    // Document order: 6, 31, 15 and 14 user-perceived characters.
+    await expect(rows.nth(0).locator('.bars__value')).toHaveText('6');
+    await expect(rows.nth(1).locator('.bars__value')).toHaveText('31');
+
+    // Sorting by length puts the longest first.
+    await page
+      .locator('[data-testid="insights-order"]')
+      .getByRole('button', { name: 'By length' })
+      .click();
+    await expect(rows.nth(0).locator('.bars__value')).toHaveText('31');
+
+    // Clicking a paragraph selects exactly that paragraph in the original text. Compared against
+    // the source array rather than a retyped literal, so a typo cannot masquerade as a bug.
+    await rows.nth(0).click();
+    const selected = await page.locator(EDITOR).evaluate((element) => {
+      const textarea = element as HTMLTextAreaElement;
+      return textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
+    });
+    expect(selected).toBe(MULTI.split('\n')[2]);
+  });
+
+  test('ranks terms and switches between word and character units', async ({ page }) => {
+    await page.goto('/');
+    await setText(page, MULTI);
+    await page.locator('#textcount-tab-insights').click();
+    await page
+      .locator('[data-testid="insights-views"]')
+      .getByRole('button', { name: 'Frequency' })
+      .click();
+
+    /*
+     * Assertions here stay engine-independent on purpose. `Intl.Segmenter` for Chinese is
+     * dictionary-driven in Chromium's ICU but character-level in Firefox's, so both are correct
+     * outputs and neither may be asserted as *the* answer. What must hold everywhere: rows carry
+     * positive integer counts, the ranking descends, and the two units behave as documented.
+     */
+    const rows = page.locator('.bars__row');
+    await expect(rows.first()).toBeVisible();
+    const counts = (await page.locator('.bars__value').allTextContents()).map(Number);
+    expect(counts.length).toBeGreaterThan(0);
+    for (const count of counts) expect(Number.isInteger(count) && count > 0).toBe(true);
+    expect([...counts].sort((a, b) => b - a)).toEqual(counts);
+
+    const summaryTokens = async (): Promise<number> => {
+      const text = (await page.locator('[data-testid="insights-summary"]').textContent()) ?? '';
+      return Number(text.replace(/[^\d].*$/, ''));
+    };
+
+    // Filtering function words can only remove tokens, never add them.
+    const filtered = await summaryTokens();
+    await page.getByLabel('Filter common function words').uncheck();
+    await expect
+      .poll(async () => summaryTokens())
+      .toBeGreaterThanOrEqual(filtered);
+
+    // Character frequency counts Han and kana only, one character per row.
+    await page
+      .locator('[data-testid="insights-unit"]')
+      .getByRole('button', { name: 'Characters' })
+      .click();
+    await expect
+      .poll(async () => {
+        const terms = await page.locator('.bars__term').allTextContents();
+        return (
+          terms.length > 0 &&
+          terms.every((term) => /^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]$/u.test(term))
+        );
+      })
+      .toBe(true);
+
+    const terms = await page.locator('.bars__term').allTextContents();
+    expect(terms).toContain('汉');
+    expect(terms).toContain('工');
+  });
+
+  test('loads the word cloud lazily and reveals a word on click', async ({ page }) => {
+    const cloudRequests: string[] = [];
+    page.on('request', (request) => {
+      if (/WordCloud/i.test(request.url())) cloudRequests.push(request.url());
+    });
+
+    await page.goto('/');
+    await setText(page, MULTI);
+    await page.locator('#textcount-tab-insights').click();
+    await page
+      .locator('[data-testid="insights-views"]')
+      .getByRole('button', { name: 'Cloud' })
+      .click();
+
+    // The cloud only renders inside the insights tool, so nothing may have fetched it earlier.
+    await expect(page.locator('.cloud svg')).toBeVisible();
+    expect(cloudRequests.length).toBeGreaterThan(0);
+
+    // Every label carries its term and exact count; which terms appear depends on the engine's
+    // segmentation, so the assertion is on the shape, not on a particular Chinese word.
+    const labels = await page.locator('.cloud svg text').evaluateAll((nodes) =>
+      nodes.map((node) => node.textContent ?? ''),
+    );
+    expect(labels.length).toBeGreaterThan(0);
+    for (const label of labels) expect(label).toMatch(/^.+: \d+/);
+
+    // The word must be genuinely clickable. Each word is a group holding the drawn text plus a
+    // transparent hit rectangle, so the click is aimed at the group: hit-testing the `<text>`
+    // alone misses a point that lands between two glyphs.
+    await page.locator('.cloud__word').first().click();
+    const selection = await page.locator(EDITOR).evaluate((element) => {
+      const textarea = element as HTMLTextAreaElement;
+      return textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
+    });
+    expect(selection.length).toBeGreaterThan(0);
+  });
+
+  test('keeps the cloud out of the initial bundle', async ({ page }) => {
+    const requests: string[] = [];
+    page.on('request', (request) => requests.push(request.url()));
+
+    await page.goto('/');
+    await setText(page, '工具 工具 汉字');
+    await page.waitForTimeout(400);
+
+    // Nothing has opened the cloud view, so its chunk must not have been fetched.
+    expect(requests.filter((url) => /WordCloud/i.test(url))).toEqual([]);
+  });
+
+  test('shows an empty state before any text is entered', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#textcount-tab-insights').click();
+    await expect(page.locator('[data-testid="panel-insights"] .panel-empty')).toBeVisible();
+    await expect(page.locator('.bars__row')).toHaveCount(0);
+  });
+});
+
 test.describe('responsive layout', () => {
   const VIEWPORTS = [
     { name: 'small phone', width: 320, height: 568 },
