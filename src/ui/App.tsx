@@ -78,7 +78,13 @@ function TopBar() {
   );
 }
 
-/** Always rendered, never swapped for a spinner, so the layout does not jump while counting. */
+/**
+ * Always rendered, never swapped for a spinner, so the layout does not jump while counting.
+ *
+ * The "including spaces" qualifier sits inside the label rather than under the number: the
+ * cells stretch to a common height and the values are bottom-aligned, so anything placed after
+ * a value would push that one number out of line with the others.
+ */
 function Headline() {
   const t = useTranslate();
   const stats = useStore(appStore, (state) => state.stats);
@@ -91,9 +97,11 @@ function Headline() {
         <NumberValue value={stats.primary} class="headline__value" />
       </div>
       <div class="headline__cell">
-        <span class="headline__label">{t('headline.graphemes')}</span>
+        <span class="headline__label">
+          {t('headline.graphemes')}
+          <span class="headline__note">{t('headline.graphemesNote')}</span>
+        </span>
         <NumberValue value={stats.graphemes} class="headline__value" />
-        <span class="headline__note">{t('headline.graphemesNote')}</span>
       </div>
       <div class="headline__cell">
         <span class="headline__label">{t('headline.primary.charsNoSpace')}</span>

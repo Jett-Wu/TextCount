@@ -367,3 +367,57 @@ test.describe('accessibility basics', () => {
     await expect(page.locator('#textcount-tab-stats')).toHaveAttribute('aria-selected', 'true');
   });
 });
+
+/**
+ * The layout has to hold up on the devices people actually use, and the failure modes are
+ * silent: nothing errors, the page just overflows or pushes the tools below the fold.
+ */
+test.describe('responsive layout', () => {
+  const VIEWPORTS = [
+    { name: 'small phone', width: 320, height: 568 },
+    { name: 'phone', width: 390, height: 844 },
+    { name: 'phone landscape', width: 844, height: 390 },
+    { name: 'tablet portrait', width: 834, height: 1194 },
+    { name: 'tablet landscape', width: 1024, height: 768 },
+    { name: 'laptop', width: 1366, height: 768 },
+    { name: 'desktop', width: 1920, height: 1080 },
+  ];
+
+  for (const viewport of VIEWPORTS) {
+    test(`holds up at ${viewport.name} (${viewport.width}x${viewport.height})`, async ({ page }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.goto('/');
+      await setText(page, '这是一个把 Word 里的文字粘进来、立刻得到可信统计的小工具。');
+
+      const layout = await page.evaluate(() => {
+        const rect = (selector: string) => {
+          const node = document.querySelector(selector);
+          if (node === null) return null;
+          const box = node.getBoundingClientRect();
+          return { width: box.width, height: box.height, top: box.top, bottom: box.bottom };
+        };
+        const valueBottoms = [...document.querySelectorAll('.headline__cell')].map((cell) =>
+          Math.round(cell.querySelector('.headline__value')!.getBoundingClientRect().bottom),
+        );
+        return {
+          innerHeight: window.innerHeight,
+          horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+          editor: rect('.editor')!,
+          tools: rect('.pane--tools')!,
+          toolbar: rect('.topbar')!,
+          valueBottoms,
+        };
+      });
+
+      expect(layout.horizontalOverflow).toBe(false);
+      // The editor must stay a usable size everywhere, including a 375px-tall landscape phone.
+      expect(layout.editor.height).toBeGreaterThan(120);
+      // The tools must be reachable without scrolling past them first.
+      expect(layout.tools.top).toBeLessThan(layout.innerHeight);
+      // The three headline numbers share one baseline even when a label wraps.
+      expect(new Set(layout.valueBottoms).size).toBe(1);
+      // The header must not eat the screen on a small phone.
+      expect(layout.toolbar.height).toBeLessThan(viewport.height * 0.25);
+    });
+  }
+});

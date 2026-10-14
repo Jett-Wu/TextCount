@@ -1,7 +1,7 @@
 /*
  * Application styles: reset, shell layout, components.
  *
- * Order matters — reset first, then the shell, then the controls. Design tokens live in
+ * Order matters 鈥?reset first, then the shell, then the controls. Design tokens live in
  * `tokens.css` and are imported before this file.
  */
 
@@ -103,10 +103,17 @@ h3.section-title {
 
 /* ------------------------------------------------------------------ shell */
 
+/*
+ * A definite height, not `min-height`: the workspace row is `minmax(0, 1fr)`, and `1fr` only
+ * resolves against a definite container size. With `min-height` the row was sized by the tool
+ * panel's content instead, so the whole page grew to ~775px and scrolled on a 720p laptop or a
+ * landscape phone. `vh` first as a fallback for engines without `dvh`.
+ */
 .app {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   max-width: var(--content-max);
   margin: 0 auto;
   padding: 0 var(--gutter);
@@ -179,6 +186,9 @@ h3.section-title {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  /* Cells stretch to a common height and the value is pinned to the bottom, so the three
+     numbers share a baseline even when one label wraps to two lines (320px, or English). */
+  justify-content: flex-end;
 }
 
 .headline__label {
@@ -204,8 +214,9 @@ h3.section-title {
 }
 
 .headline__note {
-  font-size: var(--size-meta);
+  margin-left: 5px;
   color: var(--text-faint);
+  font-weight: 400;
 }
 
 .workspace {
@@ -312,100 +323,6 @@ h3.section-title {
   color: var(--text-faint);
 }
 
-@media (max-width: 1000px) {
-  :root {
-    --gutter: 16px;
-    --sidebar-width: 320px;
-  }
-
-  .workspace {
-    gap: var(--space-4);
-  }
-
-  .brand__tagline {
-    display: none;
-  }
-}
-
-@media (max-width: 820px) {
-  .app {
-    grid-template-rows: none;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .headline {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--space-2) var(--space-3);
-    padding-bottom: var(--space-3);
-    margin-bottom: var(--space-4);
-  }
-
-  .headline__value {
-    font-size: 22px;
-  }
-
-  .headline__cell--lead .headline__value {
-    font-size: 28px;
-  }
-
-  .workspace {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  /*
-   * `flex: none` is required: the default `flex: 1` sets `flex-basis: 0`, which wins over
-   * `height` in a column flex container whose own height is content-based, collapsing the
-   * editor to a few lines.
-   */
-  .editor {
-    flex: none;
-    min-height: 0;
-    height: 42dvh;
-    resize: none;
-    padding: var(--space-4);
-  }
-
-  .pane--tools {
-    min-height: 320px;
-  }
-
-  .panel {
-    overflow: visible;
-  }
-}
-
-@media (max-width: 560px) {
-  /* Let the controls drop to their own row instead of squeezing the brand. */
-  .topbar {
-    flex-wrap: wrap;
-    row-gap: var(--space-1);
-  }
-
-  .topbar__actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .brand__mark {
-    display: none;
-  }
-}
-
-@media (max-width: 520px) {
-  .brand__name {
-    font-size: 16px;
-  }
-
-  .topbar,
-  .topbar__actions {
-    gap: var(--space-2);
-  }
-
-  .segmented__item {
-    padding: 2px 8px;
-  }
-}
 
 /* ------------------------------------------------------------------ buttons */
 
@@ -578,7 +495,7 @@ h3.section-title {
 
 /*
  * `.panel-body` already spaces its children with `gap`, so the block-level margins these
- * elements carry for standalone use are cancelled here — otherwise each gets double spacing.
+ * elements carry for standalone use are cancelled here 鈥?otherwise each gets double spacing.
  */
 .panel-body > .section-title,
 .panel-body > .btn--wide {
@@ -1100,4 +1017,211 @@ h3.section-title {
   height: 4px;
   border-radius: 50%;
   background: var(--accent);
+}
+
+/* ------------------------------------------------------------------ responsive
+ *
+ * Every media query lives at the end of the file on purpose: these rules override the base
+ * declarations above, and CSS resolves equal-specificity conflicts by source order. Placed
+ * earlier they were silently beaten by the very rules they were meant to adjust.
+ */
+
+@media (max-width: 1000px) {
+  :root {
+    --gutter: 16px;
+    --sidebar-width: 320px;
+  }
+
+  .workspace {
+    gap: var(--space-4);
+  }
+
+  .brand__tagline {
+    display: none;
+  }
+}
+
+/*
+ * Phones and portrait tablets: stack.
+ *
+ * Two columns need about 790px to leave the editor a usable width, but the deciding factor is
+ * the aspect ratio, not the width alone 鈥?a portrait tablet at 834px is better served by a
+ * full-width editor with the panel below it than by a 466px-wide column beside a 320px panel.
+ */
+@media (max-width: 900px), (max-width: 1100px) and (orientation: portrait) {
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .headline {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-2) var(--space-3);
+    padding-bottom: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+
+  .headline__value {
+    font-size: 22px;
+  }
+
+  .headline__cell--lead .headline__value {
+    font-size: 28px;
+  }
+
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /*
+   * `flex: none` is required: the default `flex: 1` sets `flex-basis: 0`, which wins over
+   * `height` in a column flex container whose own height is content-based, collapsing the
+   * editor to a few lines. `min-height` is the guard in case `svh` is unsupported; `svh` rather
+   * than `dvh` so the editor does not resize as the mobile URL bar hides.
+   */
+  .editor {
+    flex: none;
+    height: 42vh;
+    height: 42svh;
+    min-height: 220px;
+    resize: none;
+    padding: var(--space-4);
+  }
+
+  .pane--tools {
+    min-height: 320px;
+  }
+
+  .panel {
+    overflow: visible;
+  }
+}
+
+/*
+ * Short viewports 鈥?landscape phones, or a laptop with browser chrome taking a large share.
+ * Vertical space, not width, is the scarce resource here: stacking would put the tools below
+ * the fold and leave the editor 158px tall, so two compact columns win. Declared after the
+ * stacking block so it overrides it.
+ */
+@media (max-height: 560px) {
+  .app {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+  }
+
+  .headline {
+    padding: var(--space-2) 0 var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+
+  .headline__value {
+    font-size: 20px;
+  }
+
+  .headline__cell--lead .headline__value {
+    font-size: 24px;
+  }
+
+  .headline__note {
+    display: none;
+  }
+
+  .workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 36%);
+    gap: var(--space-3);
+    padding-bottom: var(--space-2);
+  }
+
+  .editor {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+    resize: none;
+    padding: var(--space-3);
+  }
+
+  .editor-bar {
+    min-height: 0;
+  }
+
+  .pane--tools {
+    min-height: 0;
+  }
+
+  .panel {
+    overflow-y: auto;
+  }
+
+  .footer {
+    padding: var(--space-2) 0;
+  }
+}
+
+@media (max-width: 560px) {
+  /* Let the controls drop to their own row instead of squeezing the brand. */
+  .topbar {
+    flex-wrap: wrap;
+    row-gap: var(--space-1);
+  }
+
+  .topbar__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .brand__mark {
+    display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  /* The three controls need ~292px at default padding, which does not fit the 273px available
+     at 320px, so the header wrapped onto a third row and ate 116px of a 568px screen. */
+  .segmented__item {
+    padding: 2px 5px;
+    font-size: 12px;
+  }
+
+  .segmented {
+    gap: 1px;
+  }
+
+  .brand__name {
+    font-size: 15px;
+  }
+
+  .topbar,
+  .topbar__actions {
+    gap: var(--space-1);
+  }
+
+  .btn--ghost {
+    padding: 6px 5px;
+  }
+
+  .editor {
+    min-height: 200px;
+  }
+
+  .pane--tools {
+    min-height: 280px;
+  }
+
+  .headline__value {
+    font-size: 20px;
+  }
+
+  .headline__cell--lead .headline__value {
+    font-size: 24px;
+  }
+
+  .headline__label {
+    font-size: 12px;
+  }
 }
