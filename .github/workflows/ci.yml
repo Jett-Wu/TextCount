@@ -1,0 +1,89 @@
+# Action versions verified against the GitHub Releases API on 2026-10-14:
+#   actions/checkout@v7            (latest release v7.0.1)
+#   actions/setup-node@v7          (latest release v7.1.0)
+#   actions/upload-artifact@v7     (latest release v7.0.2)
+# Pinned to the latest released major tag that exists.
+#
+# CI must stay offline-friendly: no step may call an external service other than the
+# npm registry and the Playwright browser CDN (used only by the e2e job).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck, test and build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist
+          if-no-files-found: error
+          retention-days: 7
+
+  e2e:
+    name: End-to-end smoke tests
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      # The Playwright config builds the app and serves `dist/` from the real project sub-path
+      # (`/textcount/`), so this also covers the GitHub Pages base path and the worker bundle URL.
+      # Firefox/WebKit stay opt-in (E2E_ALL_BROWSERS=1) because the design reference only requires
+      # the cross-engine regression before a release.
+      - name: Run smoke tests
+        run: npm run test:e2e
+        env:
+          CI: 'true'
+

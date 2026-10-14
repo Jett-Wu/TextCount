@@ -1,0 +1,152 @@
+/*
+ * Design tokens.
+ *
+ * The palette is intentionally quiet: one low-saturation accent, a narrow neutral ramp, and a
+ * single strong highlight colour reserved for search hits. Depth comes from spacing and a
+ * subtle elevation ramp rather than from gradients or glass effects.
+ *
+ * Dark values are written twice on purpose — once for the system preference and once for the
+ * explicit `data-theme="dark"` choice — because a CSS custom property cannot be shared between
+ * a media query and a selector. `light-dark()` would avoid the duplication but silently breaks
+ * the palette on any browser that does not support it, which is not an acceptable failure mode
+ * for the tool's core screens.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --surface-subtle: #f2f4f8;
+  --surface-sunken: #eceff4;
+  --border: #e7eaf0;
+  --border-strong: #d7dce5;
+
+  /* Text */
+  --text: #16181d;
+  --text-muted: #68717d;
+  --text-faint: #969ea9;
+
+  /* Accent */
+  --accent: #6478b6;
+  --accent-strong: #51639c;
+  --accent-soft: rgba(100, 120, 182, 0.12);
+  --accent-wash: rgba(100, 120, 182, 0.06);
+  --on-accent: #ffffff;
+
+  /* States */
+  --warn: #9a6a2f;
+  --warn-soft: rgba(154, 106, 47, 0.13);
+  --mark-bg: #ffe9a3;
+  --mark-text: #3b2d00;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(16, 20, 30, 0.05);
+  --shadow-md: 0 1px 2px rgba(16, 20, 30, 0.04), 0 10px 28px rgba(16, 20, 30, 0.09);
+
+  /* Geometry */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* Spacing scale: 4px base */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Layout */
+  --content-max: 1320px;
+  --sidebar-width: 360px;
+  --gutter: 24px;
+  --topbar-height: 56px;
+
+  /* Type scale */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans SC', system-ui,
+    sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --size-body: 16px;
+  --size-control: 14px;
+  --size-meta: 13px;
+  --size-section: 18px;
+  --size-headline: 44px;
+  --size-headline-secondary: 32px;
+
+  /* Motion: short, purposeful, interruptible */
+  --dur-tap: 120ms;
+  --dur-tab: 200ms;
+  --dur-panel: 260ms;
+  --ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --bg: #111318;
+    --surface: #1b1e25;
+    --surface-subtle: #23262e;
+    --surface-sunken: #16181e;
+    --border: #30343d;
+    --border-strong: #3d424d;
+
+    --text: #f4f5f7;
+    --text-muted: #a4acb8;
+    --text-faint: #7d8592;
+
+    --accent: #8b9cd6;
+    --accent-strong: #a3b1e4;
+    --accent-soft: rgba(139, 156, 214, 0.18);
+    --accent-wash: rgba(139, 156, 214, 0.08);
+    --on-accent: #14161b;
+
+    --warn: #d3a464;
+    --warn-soft: rgba(211, 164, 100, 0.16);
+    --mark-bg: #6a5410;
+    --mark-text: #ffeeb8;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.45);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #111318;
+  --surface: #1b1e25;
+  --surface-subtle: #23262e;
+  --surface-sunken: #16181e;
+  --border: #30343d;
+  --border-strong: #3d424d;
+
+  --text: #f4f5f7;
+  --text-muted: #a4acb8;
+  --text-faint: #7d8592;
+
+  --accent: #8b9cd6;
+  --accent-strong: #a3b1e4;
+  --accent-soft: rgba(139, 156, 214, 0.18);
+  --accent-wash: rgba(139, 156, 214, 0.08);
+  --on-accent: #14161b;
+
+  --warn: #d3a464;
+  --warn-soft: rgba(211, 164, 100, 0.16);
+  --mark-bg: #6a5410;
+  --mark-text: #ffeeb8;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}

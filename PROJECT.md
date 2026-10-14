@@ -1,0 +1,172 @@
+# PROJECT.md
+
+## 需求基线
+
+**项目名称：** TextCount（GitHub 仓库名建议 `textcount`）
+
+**问题：**
+用户从 Word 等软件复制一段中英混排文本后，没有一个"打开就能用、结果可信、长文不卡"的地方
+告诉他这段文字到底有多少字、有没有混入不该出现的半角/全角符号、某个词语在哪里出现。现有工具
+要么口径含糊（把 `text.length` 当字符数），要么长文卡顿，要么要求上传正文。
+
+**目标结果：**
+一个部署在 GitHub Pages 上的纯静态网页：粘贴文本即刻得到可信统计，可切换统计口径、核对多个
+目标词语、检查全角/半角与中文标点使用情况；正文全程只在本地浏览器处理。
+
+**主要用户或使用场景：**
+需要按某个口径核对字数的写作者、编辑、投稿者与学生；他们通常在桌面浏览器里粘贴一段几百字到
+几十万字的文本，看几个数字，偶尔定位到某一处。
+
+**核心流程：**
+打开页面 → 粘贴文本 → 立刻看到字数/字符数 → 如有需要切到"查找"核对目标词、切到"符号检查"
+核对全角半角 → 复制回原软件（本工具不修改原文）。
+
+### 必备能力
+
+- **R1：** 准确统计——中英混排"字数"、用户感知字符数（含/不含空白），以及汉字数、英文单词数、
+  数字串、标点数、行数、段落数等细项；口径可切换且切换不影响正文。
+- **R2：** 超长文本可用——完整文本必须精确统计，不静默截断、不用抽样数字冒充精确值；输入、
+  滚动、切 Tab 保持响应，内存可控。
+- **R3：** 查找与核对——任意字符/词语/短语的字面量计数；支持同时添加多个目标；显示匹配位置与
+  前后文，可前后跳转；默认不重叠匹配；不提供替换。
+- **R4：** 符号检查——按 ASCII 半角标点、全角兼容标点、中文/CJK 标点、其他符号分类统计；对
+  同一符号的不同书写形式（如 `:` / `：`）提示"存在不同形式"并可定位；**只分析、不转换**。
+- **R5：** 简体中文与英文界面——文案完整，一键切换不丢正文。
+- **R6：** 高级极简视觉——深浅色、响应式、短促可中断的微动效、尊重 `prefers-reduced-motion`、
+  键盘可达。
+- **R7（P1，首版不阻塞）：** 段落长度分布、词频排行、词云。
+
+### 非目标
+
+- **N1：** 文本编辑器、富文本、正文改写、全角半角转换、批量替换、自动纠正。
+- **N2：** AI 生成/检测、查重、语法纠错、语义分析、任何在线模型或 API。
+- **N3：** 云端保存、账户体系、协作、服务端数据处理、访问行为追踪。
+- **N4：** 文件格式解析大全（PDF/DOCX 等）、SEO 评分、隐藏字数"反作弊"。
+- **N5：** 学校/期刊/平台等会变化的专用规则库。
+- **N6：** 为了显得功能丰富而增加的次要卡片、图表与设置入口。
+
+### 项目级成功标准
+
+- **S1：** 打开页面无需注册、无需选模式即可粘贴，并且在同一次交互内看到主统计数字。
+- **S2：** 每一条计数口径都有明确文字定义，并被针对性的回归样例覆盖；口径切换后数字与新口径一致。
+- **S3：** 100 万字符文本可被完整、精确统计，且期间主线程不出现 >50 ms 的长任务。
+- **S4：** 仅依赖静态托管即可运行；部署在 GitHub Pages 项目子路径 `/textcount/` 下资源全部可用。
+- **S5：** 输入正文不产生任何网络请求，不写入本地存储或 URL。
+- **S6：** 简体中文与英文界面文案完整，切换语言不丢正文与选区。
+
+### 不可突破的约束
+
+- **C1：** 正文只在浏览器本地处理，不上传、不持久化；只允许本地保存非敏感偏好（语言、主题、口径）。
+- **C2：** 只读分析。不得加入正文转换、自动替换等违背用户预期的功能。
+- **C3：** 核心结果必须准确；超长文本不得静默截断，不得用抽样值冒充精确值。
+- **C4：** 无运行时第三方请求：不加载 CDN 字体、广告、埋点、在线服务。
+- **C5：** 核心统计逻辑（`src/core/`）必须无 DOM、无框架依赖，可在主线程、Worker 与 Node 中
+  给出相同结果；更换 UI 框架不得改变统计结果。
+- **C6：** 不把 Apple 专有字体文件加入仓库公开分发；使用系统字体栈。
+- **C7：** 隐私表述必须准确：可承诺"不上传输入的文本"，不得声称访问过程绝对匿名（托管平台可能
+  记录必要的访问日志）。
+
+> 编程智能体不得静默改写本需求基线。
+> 任何变化都必须经过用户明确批准，并增加需求变更条目。
+
+## 需求变更
+
+- **A1 — 2026-10-14：** 用户提供 `TextCount_完整产品与技术设计方案.md`（V2.0）与
+  `AGENT_WORKFLOW_CN.md`，要求按该方案实现并初始化本项目。R1–R7、N1–N6、S1–S6、C1–C7 均
+  直接来自该方案的 P0/P1 范围与"不可谈判"清单，未经改写。
+
+## 能力清单
+
+| ID | 能力 | 状态 | 证据 |
+|---|---|---|---|
+| R1 | 准确统计与口径切换 | 已验证 | `src/core/count.ts`、`tests/unit/count.test.ts`（37 例）、浏览器实测 `你好 AI 2026` → 字数 4 / 字符数 10 / 不含空白 8 |
+| R2 | 超长文本可用 | 已验证 | 浏览器实测 1,000,000 字符：输入同步开销 3 ms、统计 752 ms 内完成、`longtask` 观测为 0 条；见 DEVLOG D-006 |
+| R3 | 查找与多目标核对 | 已验证 | `src/core/search.ts`、`tests/unit/search.test.ts`（21 例）、浏览器实测 `aaaa` 查 `aa` = 2 处且选区落在 offset 24–26 |
+| R4 | 符号检查 | 已验证 | `src/core/symbols.ts`、`tests/unit/symbols.test.ts`（50 例）、浏览器实测半角 `(`/`)` + 全角 `（`/`）` 触发"存在不同形式"，而 `。` 单独出现时不误报 |
+| R5 | 中英双语界面 | 已验证 | `src/locales/zh-CN.ts` / `en.ts`（类型强制同构）、浏览器实测切换语言后正文与选区不变 |
+| R6 | 视觉、深浅色、响应式、动效 | 已验证 | `src/styles/*.css`；浏览器实测 1264 px 与 390 px 视口无横向溢出，390 px 下编辑区 354 px、工具面板下移 |
+| R7 | 段落分布 / 词频 / 词云 | 未开始 | 明确为 P1，首版不阻塞 |
+| S1 | 打开即可粘贴并即时统计 | 已验证 | 无注册、无模式选择；`INLINE_ANALYSIS_LIMIT` 以内的文本在同一任务内出结果 |
+| S2 | 口径有定义且被回归覆盖 | 已验证 | `src/core/count.ts` 顶部规则注释 + `about.rules.*` 文案 + 132 个单元测试 |
+| S3 | 百万字符精确且不阻塞主线程 | 已验证 | 见 R2 证据 |
+| S4 | 静态子路径部署 | 部分完成 | `vite.config.ts` 的 `base: '/textcount/'`、`.github/workflows/deploy.yml` 已就绪；**尚未在真实 GitHub Pages 上跑过一次** |
+| S5 | 无网络请求、无正文持久化 | 已验证 | 构建产物无外部请求；真实刷新后 `textarea` 为空、`localStorage` 仅含 `textcount.locale` |
+| S6 | 双语完整且不丢正文 | 已验证 | 见 R5 证据 |
+
+只有存在客观证据时，才能将能力标记为"已验证"。
+
+## 当前系统概览
+
+**阶段：** 实现（P0 功能已完成并通过本地验证；尚未在真实 GitHub Pages 上线）
+
+**当前流程：**
+
+```text
+用户输入/粘贴
+   │
+   ▼
+原生 <textarea>（非受控，UI 从不回写 value）
+   │  input 事件
+   ▼
+setText()  ──►  currentText（模块级唯一副本）+ revision++
+   │
+   ├─ revision 与文本长度 ≤ 20,000  ──► 主线程 analyzeText()，同任务出结果
+   │
+   └─ 否则：120 ms 去抖 ──► src/workers/analysis.worker.ts
+                                │ postMessage {id, text, settings}
+                                ▼
+                           analyzeText() → { stats }
+                                │
+                                ▼
+                    applyStats(stats, forRevision)
+                       forRevision !== revision ⇒ 丢弃
+```
+
+查找与符号检查走同一条协调器：小文本主线程直接算，大文本交给同一个 Worker；结果同样带
+`revision`，过期即丢弃（`runFind` / `runSymbols` 返回 `null`）。
+
+**主要组件：**
+
+- `src/core/`：纯计算层，无 DOM / 无框架 / 无 Node 依赖。`count.ts`（统计引擎）、
+  `unicode.ts`（字素与码位）、`search.ts`（字面量查找）、`symbols.ts`（标点分类）、
+  `rules.ts`（口径标识）。**统计正确性的唯一边界。**
+- `src/app/`：`appState.ts`（文本唯一副本、revision、任务协调、Worker 生命周期）、
+  `store.ts`（极简可观察 store + `useStore`）、`preferences.ts`（仅偏好持久化）、
+  `editorBridge.ts`（面板与 textarea 之间的唯一通道）、`locate.ts`、`format.ts`、`useTranslate.ts`。
+- `src/ui/`：`App.tsx` 装配；`editor/`、`stats/`、`search/`、`inspector/`、`common/`。
+- `src/workers/`：`analysis.worker.ts` 与 `protocol.ts`（请求/响应类型，两端共用）。
+- `src/locales/`：`zh-CN.ts` 为规范形状，`en.ts` 类型为 `Record<MessageKey, string>`，
+  缺翻译会编译失败。
+- `src/styles/`：`tokens.css`（设计 Token，深色值有意重复两份）、`base.css`、`layout.css`、
+  `components.css`。
+
+**重要接口或 schema：**
+
+- `analyzeText(text, settings): TextStats` — `src/core/count.ts`。全部统计数字的唯一来源。
+- `findMatches(text, term, options): MatchResult` — `src/core/search.ts`。`count` 精确、
+  `positions` 有上限、偏移量为 UTF-16 code unit。
+- `analyzeSymbols(text): SymbolReport` — `src/core/symbols.ts`。`categories` 为互斥四分类，
+  `groups` 为"同一符号的不同形式"视图，`mixed` 表示出现形式跨越了多个分类。
+- `WorkerRequest` / `WorkerResponse` — `src/workers/protocol.ts`。`postMessage` 边界的两端契约。
+- `AppState` — `src/app/appState.ts`。**不含正文**，只含派生的小值。
+
+**当前生效的技术选型：**
+
+- TypeScript（strict + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`）、Preact 11、
+  Vite 8、原生 CSS 自定义属性、Vitest 5、Playwright（E2E）、GitHub Actions + Pages。
+- 不使用 `@preact/signals`：订阅按切片进行，组件边界已经足够细。
+- 不使用 i18n 框架：两种语言用扁平字典 + `{placeholder}` 替换。
+- 不使用 `light-dark()`：深色值重复两份，避免在不支持该函数的浏览器上整站配色失效。
+- 决策记录见 `docs/decisions/0001-tech-stack.md`。
+
+**项目级风险或开放问题：**
+
+- **大文本输入控件本身**：P0 全部尺寸都使用同一个原生 `<textarea>`。统计与查找已证明不受影响，
+  但百万字符**单行**文本的渲染与滚动完全由浏览器决定，尚未逐浏览器测量。若实测不可接受，
+  `PROJECT.md`/`DEVLOG.md` 记录候选降级方案为"全文保留内存 + 只读分段预览"（见方案 §7.5）。
+- **真实部署未验证**：`base: '/textcount/'` 与 workflow 已就绪，但没有在真实 GitHub Pages
+  子路径下跑过一次，S4 保持"部分完成"。
+- **跨浏览器一致性**：`Intl.Segmenter` 与 Unicode 属性的行为差异只在 Chromium 上实测过；
+  Firefox / WebKit 回归尚未执行（Playwright 配置已就绪）。
+- **无空格分词语言**（泰语、老挝语、高棉语）在混合字数中会被当作一个很长的"词"，已在界面
+  与本文档中标注为已知限制，未静默忽略。

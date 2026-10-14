@@ -1,0 +1,18 @@
+# Normalise line endings in the repository to LF.
+#
+# This project is developed on Windows and built/tested on Linux runners, and the GitHub
+# Actions workflows are YAML — a CRLF checkout would still work, but a consistent LF tree keeps
+# diffs, patches and `shellcheck`-style tooling predictable.
+* text=auto eol=lf
+
+# Explicitly binary so Git never attempts an end-of-line conversion.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+
+# Generated lockfile: keep it diffable and out of linguist statistics.
+package-lock.json -diff linguist-generated

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>TextCount</title>
+    <meta
+      name="description"
+      content="TextCount 是一款完全在本地运行的中英文字数与字符统计工具：粘贴文本即刻统计，支持多目标查找核对与全角/半角标点检查。文本不会上传。"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#f7f8fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#111318" media="(prefers-color-scheme: dark)" />
+    <script>
+      // Apply the stored theme before first paint so the page never flashes the wrong scheme.
+      // Stored value is a non-sensitive preference only; the user's text is never persisted.
+      (function () {
+        try {
+          var stored = localStorage.getItem('textcount.theme');
+          if (stored === 'light' || stored === 'dark') {
+            document.documentElement.setAttribute('data-theme', stored);
+          }
+          var lang = localStorage.getItem('textcount.locale');
+          if (lang === 'zh-CN' || lang === 'en') {
+            document.documentElement.setAttribute('lang', lang);
+          }
+        } catch (error) {
+          /* private mode / storage disabled: fall back to system preferences */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <noscript>
+      <p style="font: 16px/1.6 system-ui, sans-serif; padding: 24px">
+        TextCount 需要 JavaScript 才能在本地完成统计。<br />
+        TextCount needs JavaScript to count text locally in your browser.
+      </p>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

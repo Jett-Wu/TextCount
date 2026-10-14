@@ -1,0 +1,74 @@
+# Action versions verified against the GitHub Releases API on 2026-10-14:
+#   actions/checkout@v7              (latest release v7.0.1)
+#   actions/setup-node@v7            (latest release v7.1.0)
+#   actions/configure-pages@v6       (latest release v6.0.0)
+#   actions/upload-pages-artifact@v5 (latest release v5.0.0)
+#   actions/deploy-pages@v5          (latest release v5.0.1)
+# Pinned to the latest released major tag that exists.
+#
+# base: '/textcount/' in vite.config.ts must match the repository name, because this is a
+# GitHub Pages PROJECT site served from https://<USERNAME>.github.io/textcount/.
+# If the project ever moves to a custom domain, or becomes a user/organisation root site
+# (https://<USERNAME>.github.io/), that base must be changed to '/'.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
