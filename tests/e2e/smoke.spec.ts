@@ -344,16 +344,17 @@ test.describe('long text', () => {
 });
 
 test.describe('accessibility basics', () => {
-  test('exposes tabs, a labelled editor and a dialog that closes on Escape', async ({ page }) => {
+  test('exposes tabs, a labelled editor and a rules menu that closes on Escape', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator(EDITOR)).toHaveAttribute('aria-label', 'Text input');
     await expect(page.locator('#textcount-tab-stats')).toHaveAttribute('aria-selected', 'true');
 
-    await page.getByRole('button', { name: 'About' }).click();
-    const dialog = page.locator('dialog.dialog');
-    await expect(dialog).toBeVisible();
+    const rules = page.locator('.rules');
+    await expect(rules).toHaveCount(0);
+    await page.getByRole('button', { name: 'Counting rules' }).click();
+    await expect(rules).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(dialog).not.toBeVisible();
+    await expect(rules).toHaveCount(0);
   });
 
   test('moves between tool tabs with the keyboard', async ({ page }) => {

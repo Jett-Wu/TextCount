@@ -1,7 +1,5 @@
-/** Shared UI primitives: a formatted count, a segmented control and a modal dialog. */
+/** Shared UI primitives: a formatted count and a segmented control. */
 
-import type { ComponentChildren } from 'preact';
-import { useEffect, useRef } from 'preact/hooks';
 import { useLocale } from '../app/state';
 import { numberLocale } from '../locales';
 
@@ -68,52 +66,5 @@ export function Segmented<T extends string>({
         );
       })}
     </div>
-  );
-}
-
-interface DialogProps {
-  open: boolean;
-  title: string;
-  onClose: () => void;
-  children: ComponentChildren;
-  labelledBy: string;
-}
-
-/** Uses the native `<dialog>` element, so focus trapping, the top layer and Esc come for free. */
-export function Dialog({ open, title, onClose, children, labelledBy }: DialogProps) {
-  const ref = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const element = ref.current;
-    if (element === null) return;
-    if (open && !element.open) {
-      if (typeof element.showModal === 'function') element.showModal();
-      else element.setAttribute('open', '');
-    } else if (!open && element.open) {
-      element.close();
-    }
-  }, [open]);
-
-  return (
-    <dialog
-      ref={ref}
-      class="dialog"
-      aria-labelledby={labelledBy}
-      onClose={() => onClose()}
-      onCancel={(event) => {
-        event.preventDefault();
-        onClose();
-      }}
-    >
-      <div class="dialog__head">
-        <h2 class="dialog__title" id={labelledBy}>
-          {title}
-        </h2>
-        <button type="button" class="btn btn--ghost" onClick={() => onClose()}>
-          ✕
-        </button>
-      </div>
-      <div class="dialog__body">{children}</div>
-    </dialog>
   );
 }

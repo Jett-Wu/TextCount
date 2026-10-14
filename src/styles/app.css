@@ -1,7 +1,7 @@
 /*
  * Application styles: reset, shell layout, components.
  *
- * Order matters 鈥?reset first, then the shell, then the controls. Design tokens live in
+ * Order matters — reset first, then the shell, then the controls. Design tokens live in
  * `tokens.css` and are imported before this file.
  */
 
@@ -495,7 +495,7 @@ h3.section-title {
 
 /*
  * `.panel-body` already spaces its children with `gap`, so the block-level margins these
- * elements carry for standalone use are cancelled here 鈥?otherwise each gets double spacing.
+ * elements carry for standalone use are cancelled here — otherwise each gets double spacing.
  */
 .panel-body > .section-title,
 .panel-body > .btn--wide {
@@ -945,80 +945,6 @@ h3.section-title {
   color: var(--text-faint);
 }
 
-/* ------------------------------------------------------------------ dialog */
-
-.dialog {
-  width: min(560px, calc(100vw - 32px));
-  max-height: min(80dvh, 720px);
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
-}
-
-.dialog::backdrop {
-  background: rgba(12, 14, 20, 0.42);
-  backdrop-filter: blur(2px);
-}
-
-.dialog__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-4) var(--space-3);
-  border-bottom: 1px solid var(--border);
-}
-
-.dialog__title {
-  font-size: var(--size-section);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.dialog__body {
-  padding: var(--space-4);
-  overflow-y: auto;
-  max-height: calc(80dvh - 72px);
-  font-size: var(--size-control);
-  line-height: 1.7;
-}
-
-.about__section + .about__section {
-  margin-top: var(--space-5);
-}
-
-.about__section p + p {
-  margin-top: var(--space-2);
-}
-
-.about__list {
-  margin-top: var(--space-2);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.about__list li {
-  position: relative;
-  padding-left: var(--space-4);
-  color: var(--text-muted);
-}
-
-.about__list li::before {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 0.65em;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--accent);
-}
-
 /* ------------------------------------------------------------------ responsive
  *
  * Every media query lives at the end of the file on purpose: these rules override the base
@@ -1045,7 +971,7 @@ h3.section-title {
  * Phones and portrait tablets: stack.
  *
  * Two columns need about 790px to leave the editor a usable width, but the deciding factor is
- * the aspect ratio, not the width alone 鈥?a portrait tablet at 834px is better served by a
+ * the aspect ratio, not the width alone — a portrait tablet at 834px is better served by a
  * full-width editor with the panel below it than by a 466px-wide column beside a 320px panel.
  */
 @media (max-width: 900px), (max-width: 1100px) and (orientation: portrait) {
@@ -1101,7 +1027,7 @@ h3.section-title {
 }
 
 /*
- * Short viewports 鈥?landscape phones, or a laptop with browser chrome taking a large share.
+ * Short viewports — landscape phones, or a laptop with browser chrome taking a large share.
  * Vertical space, not width, is the scarce resource here: stacking would put the tools below
  * the fold and leave the editor 158px tall, so two compact columns win. Declared after the
  * stacking block so it overrides it.

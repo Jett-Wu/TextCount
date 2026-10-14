@@ -24,7 +24,7 @@ import {
   type ThemePreference,
   type ToolId,
 } from '../app/state';
-import { Dialog, NumberValue, Segmented } from './common';
+import { NumberValue, Segmented } from './common';
 import { Editor } from './Editor';
 import { InspectorPanel } from './InspectorPanel';
 import { SearchPanel } from './SearchPanel';
@@ -70,9 +70,6 @@ function TopBar() {
             { value: 'dark', label: t('topbar.theme.darkShort'), title: t('topbar.theme.dark') },
           ]}
         />
-        <button type="button" class="btn btn--ghost" onClick={() => appStore.set({ aboutOpen: true })}>
-          {t('topbar.about')}
-        </button>
       </div>
     </header>
   );
@@ -174,43 +171,9 @@ function ToolPanel() {
   );
 }
 
-/**
- * The privacy wording promises exactly what the implementation guarantees and does not claim
- * the *visit* is anonymous, because GitHub Pages keeps standard access logs.
- */
-function AboutDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const t = useTranslate();
-
-  return (
-    <Dialog open={open} onClose={onClose} title={t('about.title')} labelledBy="textcount-about-title">
-      <section class="about__section">
-        <h3 class="section-title">{t('about.privacy.title')}</h3>
-        <p>{t('about.privacy.body')}</p>
-        <p class="muted">{t('about.privacy.hosting')}</p>
-      </section>
-      <section class="about__section">
-        <h3 class="section-title">{t('about.rules.title')}</h3>
-        <p>{t('about.rules.body')}</p>
-        <ul class="about__list">
-          <li>{t('about.rules.han')}</li>
-          <li>{t('about.rules.latin')}</li>
-          <li>{t('about.rules.digit')}</li>
-          <li>{t('about.rules.other')}</li>
-          <li>{t('about.rules.char')}</li>
-        </ul>
-      </section>
-      <section class="about__section">
-        <h3 class="section-title">{t('about.shortcuts.title')}</h3>
-        <p>{t('about.shortcuts.body')}</p>
-      </section>
-    </Dialog>
-  );
-}
-
 export function App() {
   const t = useTranslate();
   const locale = useLocale();
-  const aboutOpen = useStore(appStore, (state) => state.aboutOpen);
   const ruleMenuOpen = useStore(appStore, (state) => state.ruleMenuOpen);
 
   useEffect(() => {
@@ -245,7 +208,6 @@ export function App() {
         </span>
         <span class="muted">{t('footer.hosting')}</span>
       </footer>
-      <AboutDialog open={aboutOpen} onClose={() => appStore.set({ aboutOpen: false })} />
     </div>
   );
 }

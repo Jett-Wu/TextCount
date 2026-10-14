@@ -18,7 +18,6 @@ export const zhCN = {
   'topbar.theme.systemShort': '自动',
   'topbar.theme.lightShort': '浅色',
   'topbar.theme.darkShort': '深色',
-  'topbar.about': '关于',
 
   'headline.primary.mixed': '字数',
   'headline.primary.han': '汉字数',
@@ -144,31 +143,8 @@ export const zhCN = {
   'symbols.group.book-title': '书名号',
   'symbols.group.lenticular': '方头括号',
 
-  'about.title': '关于 TextCount',
-  'about.close': '关闭',
-  'about.privacy.title': '隐私',
-  'about.privacy.body':
-    '你的文本只在这台设备的浏览器中处理。页面不会把正文发送到任何服务器，没有账号、广告或行为分析，也不会加载第三方字体或运行时脚本。刷新页面后正文会消失，这是首版的预期行为。',
-  'about.privacy.hosting':
-    '网站本身由 GitHub Pages 托管，托管平台可能记录必要的访问日志。我们不声称访问过程绝对匿名，只承诺不上传、不收集你输入的文本。',
-  'about.rules.title': '计数口径',
-  'about.rules.body':
-    '字数不是单一概念。TextCount 把常见的几种口径分别算出来，绝不用一个含糊数字代替。',
-  'about.rules.han': '汉字：Unicode 文字系统为 Han 的字符，每个计 1，包含扩展区与兼容表意文字。',
-  'about.rules.latin': '英文单词：连续拉丁字母计 1 个词，词内的撇号与连字符不断开。',
-  'about.rules.digit': '数字串：连续十进制数字计 1 个单位，其中的单个小数点或千分位逗号不断开。',
-  'about.rules.other': '其他文字：按空格分词的词计 1；日文假名每个计 1；无空格分词的语言存在已知限制。',
-  'about.rules.char': '字符数：按用户感知字符（Unicode 字素簇）统计，与 UTF-16 长度不同。',
-  'about.shortcuts.title': '键盘',
-  'about.shortcuts.body': 'Tab 在工具面板之间移动焦点；Esc 关闭本窗口或统计口径菜单。',
-
   'footer.local': '所有文本只在本机浏览器中处理，不会上传。',
   'footer.hosting': '托管平台可能记录必要的访问日志。',
-
-  'common.copy': '复制',
-  'common.clear': '清空',
-  'common.none': '—',
-  'common.characters': '字符',
 } as const;
 
 export type MessageKey = keyof typeof zhCN;

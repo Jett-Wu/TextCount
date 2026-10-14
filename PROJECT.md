@@ -1,4 +1,4 @@
-﻿# PROJECT.md
+# PROJECT.md
 
 ## 需求基线
 
@@ -74,6 +74,11 @@
 - **A1 — 2026-10-14：** 用户提供 `TextCount_完整产品与技术设计方案.md`（V2.0）与
   `AGENT_WORKFLOW_CN.md`，要求按该方案实现并初始化本项目。R1–R7、N1–N6、S1–S6、C1–C7 均
   直接来自该方案的 P0/P1 范围与"不可谈判"清单，未经改写。
+- **A2 — 2026-10-14：** 用户明确要求**删除顶栏"关于"入口与其弹窗**（方案 §6.1 的顶栏结构图中
+  含"关于"一项，故此处构成需求变更）。随之删除的界面内容有：隐私说明段落、计数口径逐条解释、
+  键盘说明。**C7 仍然满足**：页脚保留"所有文本只在本机浏览器中处理，不会上传"与"托管平台可能
+  记录必要的访问日志"两句，隐私表述依然完整且不夸大。计数口径的解释改由统计面板的"统计口径"
+  菜单承担（按当前选中的口径显示对应说明），S2 的定义与回归覆盖不受影响。
 
 ## 能力清单
 
@@ -84,10 +89,10 @@
 | R3 | 查找与多目标核对 | 已验证 | `src/core/search.ts`、`tests/unit/search.test.ts`（21 例）、浏览器实测 `aaaa` 查 `aa` = 2 处且选区落在 offset 24–26 |
 | R4 | 符号检查 | 已验证 | `src/core/symbols.ts`、`tests/unit/symbols.test.ts`（54 例）、浏览器实测半角 `(`/`)` + 全角 `（`/`）` 触发"存在不同形式"，而 `。` 单独出现时不误报 |
 | R5 | 中英双语界面 | 已验证 | `src/locales/zh-CN.ts` / `en.ts`（类型强制同构）、浏览器实测切换语言后正文与选区不变 |
-| R6 | 视觉、深浅色、响应式、动效 | 已验证 | `src/styles/*.css`；浏览器实测 1264 px 与 390 px 视口无横向溢出，390 px 下编辑区 354 px、工具面板下移 |
+| R6 | 视觉、深浅色、响应式、动效 | 已验证 | `src/styles/app.css`；26 种视口（320×568 → 3440×1440）实测无横向溢出，桌面与平板横屏整页不滚动；见 DEVLOG D-012 |
 | R7 | 段落分布 / 词频 / 词云 | 未开始 | 明确为 P1，首版不阻塞 |
 | S1 | 打开即可粘贴并即时统计 | 已验证 | 无注册、无模式选择；`INLINE_ANALYSIS_LIMIT` 以内的文本在同一任务内出结果 |
-| S2 | 口径有定义且被回归覆盖 | 已验证 | `src/core/count.ts` 顶部规则注释 + `about.rules.*` 文案 + 121 个单元测试 |
+| S2 | 口径有定义且被回归覆盖 | 已验证 | `src/core/count.ts` 顶部规则注释 + 统计面板"统计口径"菜单的 `stats.rules.explain.*` 文案 + 121 个单元测试 |
 | S3 | 百万字符精确且不阻塞主线程 | 已验证 | 见 R2 证据 |
 | S4 | 静态子路径部署 | 部分完成 | `vite.config.ts` 的 `base: '/textcount/'`、`.github/workflows/deploy.yml` 已就绪；**尚未在真实 GitHub Pages 上跑过一次** |
 | S5 | 无网络请求、无正文持久化 | 已验证 | 构建产物无外部请求；真实刷新后 `textarea` 为空、`localStorage` 仅含 `textcount.locale` |
@@ -136,9 +141,9 @@ setText()  ──►  currentText（模块级唯一副本）+ revision++
   - `state.ts`：可观察 store、**正文唯一副本**、`revision`、Worker 生命周期与任务协调、
     偏好读写、i18n 与格式化 hook。
   - `editor.ts`：面板与 `textarea` 之间的唯一通道（注册、定位、复制全文）。
-- `src/ui/`：`App.tsx`（外壳、顶栏、三个主数字、工具面板与关于弹窗）、`Editor.tsx`、
+- `src/ui/`：`App.tsx`（外壳、顶栏、三个主数字、工具面板与页脚）、`Editor.tsx`、
   `StatsPanel.tsx`（详细数据 + 口径菜单）、`SearchPanel.tsx`、`InspectorPanel.tsx`、
-  `common.tsx`（数字显示、分段控件、弹窗）。
+  `common.tsx`（数字显示、分段控件）。
 - `src/locales/`：`zh-CN.ts` 为规范形状，`en.ts` 类型为 `Record<MessageKey, string>`，
   缺翻译会编译失败。
 - `src/workers/`：`analysis.worker.ts` 与 `protocol.ts`（请求/响应类型，两端共用）。
@@ -146,7 +151,6 @@ setText()  ──►  currentText（模块级唯一副本）+ revision++
   组件）。
 
 > 应用刻意保持精简（20 个源文件）。新增代码优先并入既有模块，不要按"一个组件一个文件"继续拆分。
-
 **重要接口或 schema：**
 
 - `analyzeText(text, settings): TextStats` — `src/core/count.ts`。全部统计数字的唯一来源。

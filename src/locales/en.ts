@@ -20,7 +20,6 @@ export const en: Messages = {
   'topbar.theme.systemShort': 'Auto',
   'topbar.theme.lightShort': 'Light',
   'topbar.theme.darkShort': 'Dark',
-  'topbar.about': 'About',
 
   'headline.primary.mixed': 'Words',
   'headline.primary.han': 'Han characters',
@@ -148,34 +147,6 @@ export const en: Messages = {
   'symbols.group.book-title': 'Title marks',
   'symbols.group.lenticular': 'Lenticular brackets',
 
-  'about.title': 'About TextCount',
-  'about.close': 'Close',
-  'about.privacy.title': 'Privacy',
-  'about.privacy.body':
-    'Your text is processed only in this browser. The page never sends it anywhere: no account, no ads, no analytics, no third-party fonts or runtime scripts. Reloading the page clears the text — that is the intended behaviour of this release.',
-  'about.privacy.hosting':
-    'The site itself is served by GitHub Pages, which may keep standard access logs. We do not claim the visit is anonymous; we do promise that the text you enter is never uploaded or collected.',
-  'about.rules.title': 'Counting rules',
-  'about.rules.body':
-    '“Word count” is not one number. TextCount computes the common definitions separately instead of hiding them behind a single vague figure.',
-  'about.rules.han':
-    'Han characters: code points whose Unicode script is Han, one each, including the extension and compatibility blocks.',
-  'about.rules.latin':
-    'English words: one per run of Latin letters; apostrophes and hyphens inside a word do not split it.',
-  'about.rules.digit':
-    'Number runs: one per run of decimal digits; a single decimal point or thousands separator does not split it.',
-  'about.rules.other':
-    'Other scripts: one per space-separated word; kana count one each. Scripts written without spaces have a known limitation.',
-  'about.rules.char':
-    'Characters: user-perceived characters (Unicode grapheme clusters), which differ from the UTF-16 length.',
-  'about.shortcuts.title': 'Keyboard',
-  'about.shortcuts.body': 'Tab moves focus between the tool panels; Esc closes this dialog or the rules menu.',
-
   'footer.local': 'Your text stays on this device. It is processed locally.',
   'footer.hosting': 'The hosting platform may keep standard access logs.',
-
-  'common.copy': 'Copy',
-  'common.clear': 'Clear',
-  'common.none': '—',
-  'common.characters': 'characters',
 };

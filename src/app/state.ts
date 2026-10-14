@@ -41,7 +41,6 @@ export interface AppState {
   locale: LocaleId;
   theme: ThemePreference;
   activeTool: ToolId;
-  aboutOpen: boolean;
   ruleMenuOpen: boolean;
   revision: number;
   textLength: number;
@@ -171,7 +170,6 @@ export const appStore = new Store<AppState>({
   locale: loadLocale(),
   theme: loadTheme(),
   activeTool: 'stats',
-  aboutOpen: false,
   ruleMenuOpen: false,
   revision: 0,
   textLength: 0,
