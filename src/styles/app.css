@@ -163,11 +163,17 @@ select {
  * The numbers sit above the workspace and share its edges. Cells stretch to a common height and
  * the value is bottom-aligned, so the three figures keep one baseline even when a label wraps
  * onto a second line; anything placed below a value would push that single number out of line.
+ *
+ * Sized as one compact result group rather than three columns of the page. Spread across the full
+ * 1296px the labels started at x=72, 564 and 978 — the third figure sat closer to the tool panel
+ * than to the number it qualifies, so a reader's eye travelled the whole width to compare three
+ * related figures. The group is bounded and left-aligned with the editor.
  */
 .stats {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr;
-  gap: var(--space-3) var(--space-5);
+  grid-template-columns: minmax(0, 264px) minmax(0, 204px) minmax(0, 204px);
+  justify-content: start;
+  gap: var(--space-3) 40px;
   align-items: stretch;
   padding: var(--space-2) 0 var(--space-6);
 }
@@ -186,7 +192,7 @@ select {
 }
 
 .stats__qualifier {
-  color: var(--text-faint);
+  color: var(--text-muted);
 }
 
 .stats__value {
@@ -213,16 +219,6 @@ select {
   gap: var(--col-gap);
   min-height: 0;
   padding-bottom: var(--space-5);
-}
-
-/*
- * The word cloud is the one view the design reference says must not be squeezed into a narrow
- * sidebar, so the insights tool gets a wider column. It is a deliberate, one-off change per tool
- * switch rather than an animation: transitioning the column would reflow the editor on every
- * frame for no benefit.
- */
-.workspace--insights {
-  grid-template-columns: minmax(0, 1fr) var(--sidebar-width-wide);
 }
 
 /* ------------------------------------------------------------------ editor */
@@ -291,7 +287,7 @@ select {
 }
 
 .editor__input::placeholder {
-  color: var(--text-faint);
+  color: var(--text-muted);
 }
 
 .editor__foot {
@@ -316,7 +312,7 @@ select {
 }
 
 .editor__note-detail {
-  color: var(--text-faint);
+  color: var(--text-muted);
 }
 
 .editor__note-detail::before {
@@ -377,6 +373,47 @@ select {
 
 .switcher__item:hover {
   color: var(--text);
+}
+
+/*
+ * Sub-level navigation. The tool tabs are a segmented control with a sunken track; repeating that
+ * treatment one level down — which is what happened, since `switcher--sub` carried no rules of its
+ * own — made the insights panel read as three near-identical pill bars with no visual hierarchy.
+ * The sub-level drops the track and marks the active item with an underline instead.
+ */
+.switcher--sub {
+  gap: var(--space-4);
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.switcher--sub .switcher__item {
+  flex: 0 1 auto;
+  min-height: 30px;
+  padding: 6px 0;
+  margin-bottom: -1px;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.switcher--sub .switcher__item--on {
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  font-weight: 500;
+  border-bottom: 2px solid var(--accent);
+}
+
+/* A level below that — sort order, counting unit: text only, no rule under the active item. */
+.switcher--plain,
+.switcher--plain .switcher__item--on {
+  border-bottom: 0;
+}
+
+.switcher--plain .switcher__item--on {
+  color: var(--accent-strong);
 }
 
 .switcher__item--on {
@@ -450,17 +487,22 @@ select {
 .rule-trigger__value {
   margin-left: auto;
   font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: right;
+  /*
+   * Wraps instead of clipping. This used to carry `overflow: hidden` plus an ellipsis, which on a
+   * 390px screen shortened `Mixed Chinese/English words` — the one string that says which rule the
+   * headline number was counted under. `break-word` is the last resort for a value with no spaces;
+   * it never hides the text.
+   */
+  overflow-wrap: break-word;
 }
 
 .rule-trigger__chevron {
-  color: var(--text-faint);
+  color: var(--text-muted);
   font-size: 12px;
 }
 
-/* Rule card expands in place; the transition is on opacity/transform only. */
+/* Rule card expands in place; only opacity animates, so nothing shifts while it appears. */
 .rules {
   display: flex;
   flex-direction: column;
@@ -475,11 +517,9 @@ select {
 @keyframes panel-in {
   from {
     opacity: 0;
-    transform: translateY(-4px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 
@@ -494,11 +534,11 @@ select {
 
 .rules__legend {
   padding: 0 0 var(--space-2);
-  font-size: var(--size-micro);
+  font-size: var(--size-meta);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: var(--text-muted);
 }
 
 .rules__option {
@@ -545,11 +585,11 @@ select {
 }
 
 .panel-heading {
-  font-size: var(--size-micro);
+  font-size: var(--size-meta);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: var(--text-muted);
 }
 
 /*
@@ -648,7 +688,7 @@ select {
 .btn--ghost {
   border-color: transparent;
   background: transparent;
-  color: var(--text-faint);
+  color: var(--text-muted);
   padding: 6px var(--space-2);
 }
 
@@ -724,7 +764,7 @@ select {
 }
 
 .input::placeholder {
-  color: var(--text-faint);
+  color: var(--text-muted);
 }
 
 .input:focus {
@@ -760,6 +800,18 @@ select {
   font-size: var(--size-micro);
   color: var(--text-muted);
   line-height: 1.6;
+}
+
+/*
+ * A group of related notes. The panel's 24px rhythm is for separate pieces of information; two
+ * sentences that together describe one rule belong 6px apart, with the group 16px from what follows.
+ */
+.help {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* Cancels a third of the panel's 24px gap, so the group sits 16px above the results. */
+  margin-bottom: calc(-1 * var(--space-2));
 }
 
 .hint--busy {
@@ -927,7 +979,7 @@ select {
 }
 
 .context__gap {
-  color: var(--text-faint);
+  color: var(--text-muted);
 }
 
 /* ------------------------------------------------------------------ symbol inspector */
@@ -962,8 +1014,14 @@ select {
 }
 
 .group--mixed {
-  border-color: var(--warn);
-  background: var(--warn-soft);
+  /*
+   * Neutral card, thin warning edge. Filling the whole card with the warn tint plus a warn border
+   * plus a warn badge made a panel of mixed punctuation read as a wall of alarms, when mixing
+   * full-width and half-width forms is frequently correct — the code points, not the colour, are
+   * what let a reader tell 。 from ． from .
+   */
+  border-color: var(--border);
+  box-shadow: inset 3px 0 0 var(--warn);
 }
 
 .group__head {
@@ -985,12 +1043,20 @@ select {
   padding-top: var(--space-2);
 }
 
+/*
+ * Symbol chips are a two-line grid: glyph and count on the first line, the code point underneath.
+ * On one line the chip held three sizes of text side by side and the glyph — the thing the reader
+ * is actually identifying — was the least prominent of the three. The code point stays permanently
+ * visible rather than moving into a tooltip, because it is the only way to tell 。 ． and . apart.
+ */
 .chip,
 .sym {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 3px var(--space-2);
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  justify-items: start;
+  gap: 0 6px;
+  padding: 4px var(--space-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -998,6 +1064,24 @@ select {
   transition:
     border-color var(--dur-tap) var(--ease),
     background-color var(--dur-tap) var(--ease);
+}
+
+.chip__char,
+.sym__char {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.chip__count,
+.sym__count {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.chip__code,
+.sym__code {
+  grid-column: 1 / -1;
+  grid-row: 2;
 }
 
 .chip {
@@ -1012,20 +1096,26 @@ select {
 
 .chip__char,
 .sym__char {
-  font-size: 15px;
+  /* The glyph is the point of the chip, so it leads: code point and count sit below it. */
+  font-size: 16px;
   line-height: 1.2;
 }
 
 .chip__code,
 .sym__code {
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-faint);
+  /*
+   * `--size-micro` rather than a literal. This was 11px, which the type scale does not contain
+   * and which its own comment ("the only place small text is allowed", 12px) says cannot exist —
+   * a hardcoded size had quietly escaped the scale it was meant to be governed by.
+   */
+  font-size: var(--size-micro);
+  color: var(--text-muted);
 }
 
 .chip__count,
 .sym__count {
-  font-size: var(--size-micro);
+  font-size: var(--size-meta);
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -1095,7 +1185,7 @@ select {
   flex: none;
   width: 24px;
   font-size: var(--size-micro);
-  color: var(--text-faint);
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
@@ -1182,10 +1272,8 @@ select {
 @media (max-width: 1100px) {
   :root {
     --gutter: 24px;
-    --sidebar-width: 320px;
-    /* Below this width the wider insights column would eat the editor, so the cloud gets the
-       ordinary sidebar and drops however many words do not fit (and says so). */
-    --sidebar-width-wide: 380px;
+    /* Narrower together, never per tool: the editor keeps the same width on every tab. */
+    --sidebar-width: 328px;
   }
 }
 
@@ -1214,14 +1302,9 @@ select {
   }
 
   .stats {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: var(--space-1) var(--space-4);
-    padding-bottom: var(--space-5);
-  }
-
-  /* The primary count takes its own row; the two secondary figures sit below it. */
-  .stats__item--lead {
-    grid-column: 1 / -1;
+    /* Still one compact group; the three tracks shrink together rather than stacking. */
+    gap: var(--space-2) var(--space-4);
+    padding-bottom: var(--space-4);
   }
 
   .stats__item--lead .stats__value {
@@ -1284,9 +1367,10 @@ select {
   }
 
   .stats {
-    grid-template-columns: 1.2fr 1fr 1fr;
+    /* Portrait tablets and small laptops: keep the compact group, tighten the gutters. */
+    grid-template-columns: minmax(0, 240px) minmax(0, 190px) minmax(0, 190px);
+    gap: var(--space-2) var(--space-5);
     padding: var(--space-1) 0 var(--space-3);
-    gap: var(--space-2) var(--space-4);
   }
 
   .stats__item--lead .stats__value {
@@ -1339,12 +1423,57 @@ select {
   .topbar {
     flex-wrap: wrap;
     row-gap: var(--space-1);
-    min-height: 56px;
+    min-height: 0;
+    padding: var(--space-2) 0;
   }
 
+  /* Language and theme share one row across the full width instead of stacking left-aligned. */
   .topbar__controls {
     width: 100%;
-    justify-content: flex-start;
+    justify-content: space-between;
+  }
+
+  /*
+   * One compact row of three, rather than the lead figure on a row of its own. Stacking cost
+   * 148px above the editor, which pushed the tools to y=648 — below the fold on a 390x844 phone.
+   *
+   * Flex rather than fixed tracks, because a seven-digit count is nine characters once the
+   * thousands separators are in: `1,169,590` measured wider than its 132px track and was clipping.
+   * With `min-width: min-content` the row simply wraps to two when the numbers grow, which is the
+   * documented fallback — no overflow, nothing truncated, and no need to guess how many digits
+   * the user will paste.
+   */
+  .stats {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 2px var(--space-3);
+    padding: var(--space-1) 0 var(--space-3);
+  }
+
+  .stats__item {
+    flex: 1 1 auto;
+    min-width: min-content;
+  }
+
+  .stats__item--lead {
+    flex-grow: 1.3;
+  }
+
+  .stats__value {
+    white-space: nowrap;
+  }
+
+  .stats__label {
+    font-size: var(--size-micro);
+  }
+
+  .stats__item--lead .stats__value {
+    font-size: 34px;
+  }
+
+  .stats__value {
+    font-size: 21px;
   }
 
   .editor__head {
@@ -1362,8 +1491,12 @@ select {
 }
 
 /*
- * Touch targets. Applied on pointer type rather than width, so a touch laptop benefits too;
- * the visual size stays modest while the hit area reaches the 44px guideline.
+ * Touch targets. Applied on pointer type rather than width, so a touch laptop benefits too.
+ *
+ * These were 42px and 36px while the comment claimed 44px, and the measurement said so: the
+ * language and theme buttons stood 36px tall. The claim is now true rather than the comment
+ * softened, because the header controls and the tool tabs are the two things a thumb reaches for
+ * first. Targets grow by real padding, never by pseudo-elements that overlap their neighbour.
  */
 @media (pointer: coarse) {
   .btn,
@@ -1373,12 +1506,9 @@ select {
     min-height: 44px;
   }
 
-  .switcher__item {
-    min-height: 42px;
-  }
-
+  .switcher__item,
   .segmented__item {
-    min-height: 36px;
+    min-height: 44px;
   }
 
   .check,
@@ -1388,7 +1518,7 @@ select {
 
   .chip,
   .sym {
-    min-height: 34px;
+    min-height: 44px;
   }
 }
 
@@ -1404,6 +1534,31 @@ select {
     font-size: var(--size-micro);
   }
 
+  /*
+   * Four tool tabs in 276px leaves 69px each; `Symbols` needed 72px and was being clipped to
+   * `Symbol…`. Trimmed here rather than shortened further, so the label stays the accurate one.
+   */
+  .switcher__item {
+    padding: 6px 4px;
+    font-size: var(--size-meta);
+  }
+
+  /*
+   * At this width three labels cannot share one row in English, and letting flex decide put the
+   * break between the two secondary figures — a pair that is always read together, on two
+   * different baselines. The lead takes its own row instead and the pair stays side by side.
+   *
+   * Order matters: `.stats__item` and `.stats__item--lead` have equal specificity, so the lead
+   * rule has to come second or the generic one silently wins.
+   */
+  .stats__item {
+    flex: 1 1 calc(50% - var(--space-3));
+  }
+
+  .stats__item--lead {
+    flex: 1 1 100%;
+  }
+
   .brand__name {
     font-size: 16px;
   }
@@ -1413,7 +1568,8 @@ select {
   }
 
   .stats__item--lead .stats__value {
-    font-size: 30px;
+    /* Smaller here so the group usually stays on one row at 320px; it wraps if it cannot. */
+    font-size: 27px;
   }
 
   .stats__value {

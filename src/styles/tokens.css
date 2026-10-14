@@ -23,7 +23,13 @@
   /* Text */
   --text: #171b24;
   --text-muted: #626b78;
-  --text-faint: #8b93a1;
+  /*
+   * There is deliberately no third, fainter text colour. One existed and every use of it was
+   * tested: at 13px it measured 2.94:1 on the page and 3.09:1 on a card, so the qualifier that
+   * defines what a number means, the privacy note and the symbol code points were all below the
+   * 4.5:1 floor. Anything that carries meaning uses `--text-muted` (5.1:1 light, 7.6:1 dark);
+   * disabled controls are dimmed with opacity instead, which is not a text colour.
+   */
 
   /* Accent — used for the active tool, focus, and the primary number only */
   --accent: #5b6fb5;
@@ -59,8 +65,13 @@
   /* Layout */
   --content-max: 1360px;
   --gutter: 32px;
-  --sidebar-width: 348px;
-  --sidebar-width-wide: 440px;
+  /*
+   * One width for every tool. A wider column for the insights tool was tried and reverted: it
+   * narrowed the editor by 92px whenever that tab was opened, so the whole document re-wrapped and
+   * the reader lost their place — the opposite of what a side panel is for. The cloud is laid out
+   * for whatever width it is given and reports how many words it could place.
+   */
+  --sidebar-width: 392px;
   --col-gap: 24px;
 
   /* Type — one scale, used consistently */
@@ -98,7 +109,6 @@
 
     --text: #f3f4f6;
     --text-muted: #a8b0be;
-    --text-faint: #7c8494;
 
     --accent: #8fa0dd;
     --accent-strong: #a6b4e8;
@@ -127,7 +137,6 @@
 
   --text: #f3f4f6;
   --text-muted: #a8b0be;
-  --text-faint: #7c8494;
 
   --accent: #8fa0dd;
   --accent-strong: #a6b4e8;

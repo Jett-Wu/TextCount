@@ -650,6 +650,91 @@ test.describe('insights', () => {
   });
 });
 
+test.describe('layout stability', () => {
+  const SMALL = '你好。世界。\n\nSecond paragraph.';
+
+  /*
+   * The editor must not move when a side panel is opened. It used to: the insights tool took a
+   * 440px column against everyone else's 348px, so switching to it narrowed the editor by 92px and
+   * re-wrapped the whole document under the reader's eyes.
+   */
+  test('keeps the editor geometry identical on every tool', async ({ page }) => {
+    await page.goto('/');
+    await setText(page, SMALL);
+    const seen: string[] = [];
+    for (const tool of ['stats', 'search', 'symbols', 'insights']) {
+      await page.locator(`#textcount-tab-${tool}`).click();
+      await page.waitForTimeout(400);
+      const geometry = await page.locator(EDITOR).evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        return `${Math.round(box.x)}/${Math.round(box.width)}`;
+      });
+      seen.push(geometry);
+    }
+    expect(new Set(seen).size).toBe(1);
+  });
+
+  /*
+   * A clipped tab hides the navigation itself. `Punctuation` measured 94px in an 87px tab at 390px
+   * and was rendering as `Punctuat…`; no horizontal overflow was reported anywhere, which is why
+   * "the page does not scroll sideways" is not evidence that a responsive layout works.
+   */
+  for (const locale of ['zh-CN', 'en'] as const) {
+    test(`fits every tool tab at 320px and 390px (${locale})`, async ({ page }) => {
+      for (const width of [320, 390]) {
+        await page.setViewportSize({ width, height: 720 });
+        await page.goto('/');
+        await page.evaluate((value) => localStorage.setItem('textcount.locale', value), locale);
+        await page.reload();
+        await page.waitForSelector(EDITOR);
+
+        const clipped = await page.locator('.switcher__item').evaluateAll((nodes) =>
+          nodes
+            .filter((node) => node.scrollWidth > node.clientWidth + 1)
+            .map((node) => `${node.textContent} (${node.scrollWidth}>${node.clientWidth})`),
+        );
+        expect(clipped, `clipped tabs at ${width}px in ${locale}`).toEqual([]);
+      }
+    });
+  }
+
+  /*
+   * The rule value says which rule the headline number was counted under, so it must never be
+   * shortened. It used to carry `overflow: hidden` and an ellipsis.
+   */
+  test('never shortens the active counting rule', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 720 });
+    await page.goto('/');
+    await page.locator('#textcount-tab-stats').click();
+    const value = page.locator('.rule-trigger__value');
+    await expect(value).toBeVisible();
+    const clipped = await value.evaluate((node) => node.scrollWidth > node.clientWidth + 1);
+    expect(clipped).toBe(false);
+    await expect(value).toHaveText(/\S/);
+  });
+
+  /* A seven-digit count is nine characters once the thousands separators are in. */
+  test('renders a seven-digit count without overflow', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 720 });
+    await page.goto('/');
+    // 80,000 repetitions is 1,360,000 characters, so the slice really does reach 1,234,567.
+    await setText(page, '这是一个用于验证七位数排版的句子。'.repeat(80_000).slice(0, 1_234_567));
+    await expect(page.locator('.stats__value').first()).toHaveText(/^\d,\d{3},\d{3}$/);
+    await expect
+      .poll(async () =>
+        page.locator('.stats__value').evaluateAll((nodes) =>
+          nodes.every((node) => node.scrollWidth <= node.clientWidth + 1),
+        ),
+      )
+      .toBe(true);
+    // Nothing may spill sideways, however the group chooses to arrange itself.
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    );
+    expect(overflow).toBe(false);
+  });
+});
+
 test.describe('responsive layout', () => {
   const VIEWPORTS = [
     { name: 'small phone', width: 320, height: 568 },

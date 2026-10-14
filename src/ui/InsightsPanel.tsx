@@ -192,7 +192,7 @@ function ParagraphView({
       </dl>
 
       <div
-        class="switcher switcher--sub"
+        class="switcher switcher--sub switcher--plain"
         role="group"
         aria-label={t('insights.paragraphs.order')}
         data-testid="insights-order"
@@ -262,7 +262,7 @@ function FrequencyView({
   return (
     <>
       <div
-        class="switcher switcher--sub"
+        class="switcher switcher--sub switcher--plain"
         role="group"
         aria-label={t('insights.frequency.unit')}
         data-testid="insights-unit"

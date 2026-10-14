@@ -146,8 +146,16 @@ export function SearchPanel() {
         <span>{t('search.caseSensitive')}</span>
       </label>
 
-      <p class="hint">{t('search.hint')}</p>
-      <p class="hint">{t('search.overlapHint')}</p>
+      {/*
+        The two matching rules are one piece of information, so they read as one group. Left as
+        separate panel children they inherited the panel's 24px rhythm and pushed the results down
+        by an extra 24px for no gain — the results were further from the query than the two
+        footnotes were from each other.
+      */}
+      <div class="help">
+        <p class="hint">{t('search.hint')}</p>
+        <p class="hint">{t('search.overlapHint')}</p>
+      </div>
 
       {terms.length === 0 ? <p class="panel-empty">{t('search.empty')}</p> : null}
       {status === 'running' && terms.length > 0 ? (

@@ -170,7 +170,6 @@ function Tools() {
 export function App() {
   const t = useTranslate();
   const locale = useLocale();
-  const insightsOpen = useStore(appStore, (state) => state.activeTool === 'insights');
 
   useEffect(() => {
     document.documentElement.setAttribute('lang', locale);
@@ -200,7 +199,7 @@ export function App() {
     <div class="app">
       <TopBar />
       <Stats />
-      <main class={insightsOpen ? 'workspace workspace--insights' : 'workspace'}>
+      <main class="workspace">
         <Editor />
         <Tools />
       </main>

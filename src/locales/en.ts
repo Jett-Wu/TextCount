@@ -29,9 +29,15 @@ export const en: Messages = {
   'headline.graphemes': 'Characters',
   'headline.graphemesNote': ' (with spaces)',
 
-  'tool.stats': 'Statistics',
+  /*
+   * Short on purpose. At 390px each tab has 87px, and `Punctuation` measured 94px — it was being
+   * clipped to `Punctuat…`, which hides the navigation rather than the definition. `Symbols` also
+   * matches what the panel actually covers: full-width/half-width forms of @ # $ and friends, not
+   * only punctuation.
+   */
+  'tool.stats': 'Counts',
   'tool.search': 'Find',
-  'tool.symbols': 'Punctuation',
+  'tool.symbols': 'Symbols',
   'tool.insights': 'Insights',
 
   'insights.view.paragraphs': 'Paragraphs',
@@ -89,7 +95,8 @@ export const en: Messages = {
   'stats.rules.punctuation': 'Count every punctuation mark as one unit',
   'stats.rules.note': 'Changing the rules never edits or clears your text.',
   'stats.rules.options': 'Counted in the headline number',
-  'stats.emptyHint': 'Paste or type text to see the detailed breakdown here.',
+  // Short: the editor already carries the actionable prompt, so this only marks the empty state.
+  'stats.emptyHint': 'No data yet',
   'stats.group.counts': 'Counts',
   'stats.group.structure': 'Text structure',
   'stats.rules.explain.mixed':

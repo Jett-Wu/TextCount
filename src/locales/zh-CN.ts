@@ -29,7 +29,8 @@ export const zhCN = {
 
   'tool.stats': '统计',
   'tool.search': '查找',
-  'tool.symbols': '标点',
+  // 「符号」而不是「标点」：这个面板同时覆盖 @ # $ 等非标点符号的全角/半角形式。
+  'tool.symbols': '符号',
   'tool.insights': '分析',
 
   'insights.view.paragraphs': '段落',
@@ -85,7 +86,8 @@ export const zhCN = {
   'stats.rules.punctuation': '每个标点符号计 1 个单位',
   'stats.rules.note': '切换口径不会修改或清空文本。',
   'stats.rules.options': '计入选项',
-  'stats.emptyHint': '粘贴或输入文字后，这里显示详细统计。',
+  // Short: the editor already carries the actionable prompt, so this only marks the empty state.
+  'stats.emptyHint': '尚无数据',
   'stats.group.counts': '计数',
   'stats.group.structure': '文本结构',
   'stats.rules.explain.mixed':
