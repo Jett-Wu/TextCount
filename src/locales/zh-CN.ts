@@ -9,6 +9,7 @@
 export const zhCN = {
   'app.name': 'TextCount',
   'app.tagline': '本地处理的字数统计',
+  'tools.label': '检查工具',
 
   'topbar.language': '界面语言',
   'topbar.theme': '主题',
@@ -24,13 +25,13 @@ export const zhCN = {
   'headline.primary.latinWords': '英文单词数',
   'headline.primary.charsNoSpace': '不含空白字符数',
   'headline.graphemes': '字符数',
-  'headline.graphemesNote': '含空白',
+  'headline.graphemesNote': '（含空白）',
 
   'tool.stats': '统计',
   'tool.search': '查找',
   'tool.symbols': '符号检查',
 
-  'stats.detail': '详细数据',
+  'stats.summary': '统计概览',
   'stats.metric.han': '汉字',
   'stats.metric.kana': '日文假名',
   'stats.metric.latinWords': '英文单词',
@@ -43,7 +44,6 @@ export const zhCN = {
   'stats.metric.paragraphs': '段落数',
   'stats.metric.utf16Length': 'UTF-16 长度',
   'stats.rules.open': '统计口径',
-  'stats.rules.close': '收起',
   'stats.rules.primary': '主字数按以下口径统计',
   'stats.rules.primary.mixed': '中英混合字数',
   'stats.rules.primary.han': '只统计汉字',
@@ -53,6 +53,9 @@ export const zhCN = {
   'stats.rules.punctuation': '每个标点符号计 1 个单位',
   'stats.rules.note': '切换口径不会修改或清空文本。',
   'stats.rules.options': '计入选项',
+  'stats.emptyHint': '粘贴或输入文字后，这里显示详细统计。',
+  'stats.group.counts': '计数',
+  'stats.group.structure': '文本结构',
   'stats.rules.explain.mixed':
     '每个汉字 1 + 每个假名 1 + 每个连续的英文单词 1 + 每个连续数字串 1（可关闭）+ 其他文字按空格分词的词数。标点、空白与 Emoji 默认不计入。',
   'stats.rules.explain.han': '字数按 Unicode 文字系统为 Han 的字符计算，每个计 1，包含扩展区与兼容表意文字。',
@@ -60,16 +63,20 @@ export const zhCN = {
   'stats.rules.explain.charsNoSpace':
     '字数按用户感知字符（Unicode 字素簇）统计后剔除空白；Emoji、组合字符与旗帜各算一个字符。',
 
+  'editor.title': '文本',
   'editor.placeholder': '粘贴或输入文本，即刻统计',
   'editor.ariaLabel': '文本输入区',
   'editor.clear': '清空',
   'editor.clearConfirm': '再次点击清空',
   'editor.clearConfirmHint': '文本较长，需要再次点击才会清空。',
   'editor.copy': '复制全文',
+  'editor.copyHint': '把全文复制到剪贴板',
   'editor.copied': '已复制',
   'editor.copyFailed': '复制失败',
-  'editor.computing': '计算中…',
-  'editor.readonlyNotice': '很长文本仍在后台完整统计，文字不会被截断。',
+  'editor.computing': '统计中…',
+  'editor.longText': '长文本',
+  'editor.localNote': '本地处理 · 输入文本不会上传',
+  'editor.hostingNote': '托管平台可能记录必要的访问日志。',
   'editor.degradedNotice':
     '当前浏览器未能启用后台计算，超长文本在计算时可能短暂停顿。统计结果依然完整。',
 
@@ -142,9 +149,6 @@ export const zhCN = {
   'symbols.group.corner-bracket': '直角引号',
   'symbols.group.book-title': '书名号',
   'symbols.group.lenticular': '方头括号',
-
-  'footer.local': '所有文本只在本机浏览器中处理，不会上传。',
-  'footer.hosting': '托管平台可能记录必要的访问日志。',
 } as const;
 
 export type MessageKey = keyof typeof zhCN;

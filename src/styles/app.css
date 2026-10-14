@@ -1,8 +1,11 @@
 /*
- * Application styles: reset, shell layout, components.
+ * Application styles: reset, shell, components.
  *
- * Order matters — reset first, then the shell, then the controls. Design tokens live in
- * `tokens.css` and are imported before this file.
+ * Order matters — reset first, then the shell, then the controls, and every media query last.
+ * That last point is not stylistic: media queries here override equal-specificity base rules,
+ * and CSS resolves those by source order, so an early block would be silently beaten.
+ *
+ * Design tokens live in `tokens.css`.
  */
 
 /* ------------------------------------------------------------------ reset */
@@ -28,6 +31,9 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-size-adjust: 100%;
+  transition:
+    background-color var(--dur-tab) var(--ease),
+    color var(--dur-tab) var(--ease);
 }
 
 #app {
@@ -64,11 +70,10 @@ select {
   font-family: inherit;
 }
 
-/* One consistent focus treatment: visible on both themes, never colour-only. */
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
 }
 
 .value {
@@ -80,16 +85,6 @@ select {
   color: var(--text-muted);
 }
 
-h3.section-title {
-  font-size: var(--size-meta);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: var(--space-3);
-}
-
-/* Nothing animates on text input, and the editor's geometry is never transitioned. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -104,14 +99,13 @@ h3.section-title {
 /* ------------------------------------------------------------------ shell */
 
 /*
- * A definite height, not `min-height`: the workspace row is `minmax(0, 1fr)`, and `1fr` only
- * resolves against a definite container size. With `min-height` the row was sized by the tool
- * panel's content instead, so the whole page grew to ~775px and scrolled on a 720p laptop or a
- * landscape phone. `vh` first as a fallback for engines without `dvh`.
+ * A definite height rather than `min-height`: the workspace row is `minmax(0, 1fr)`, and `1fr`
+ * only distributes free space when the container has a definite height. With `min-height` the
+ * row was sized by the tool panel's content instead and the whole page grew and scrolled.
  */
 .app {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr);
   height: 100vh;
   height: 100dvh;
   max-width: var(--content-max);
@@ -124,13 +118,13 @@ h3.section-title {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  min-height: var(--topbar-height);
-  padding: var(--space-2) 0;
+  min-height: 64px;
+  padding: var(--space-3) 0;
 }
 
 .brand {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-2);
   min-width: 0;
 }
@@ -141,30 +135,21 @@ h3.section-title {
   width: 26px;
   height: 26px;
   border-radius: var(--radius-sm);
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1;
-  align-self: center;
-  letter-spacing: -0.02em;
-}
-
-.brand__name {
-  font-size: 17px;
+  background: var(--accent-wash);
+  color: var(--accent);
+  font-size: 14px;
   font-weight: 600;
+  line-height: 1;
   letter-spacing: -0.01em;
 }
 
-.brand__tagline {
-  font-size: var(--size-meta);
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.brand__name {
+  font-size: var(--size-title);
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
-.topbar__actions {
+.topbar__controls {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -172,157 +157,419 @@ h3.section-title {
   justify-content: flex-end;
 }
 
-.headline {
+/* ------------------------------------------------------------------ headline numbers */
+
+/*
+ * The numbers sit above the workspace and share its edges. Cells stretch to a common height and
+ * the value is bottom-aligned, so the three figures keep one baseline even when a label wraps
+ * onto a second line; anything placed below a value would push that single number out of line.
+ */
+.stats {
   display: grid;
-  grid-template-columns: 1.15fr 1fr 1fr;
+  grid-template-columns: 1.2fr 1fr 1fr;
   gap: var(--space-3) var(--space-5);
-  padding: var(--space-3) 0 var(--space-4);
-  border-bottom: 1px solid var(--border);
-  margin-bottom: var(--space-5);
+  align-items: stretch;
+  padding: var(--space-2) 0 var(--space-6);
 }
 
-.headline__cell {
+.stats__item {
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   gap: 2px;
   min-width: 0;
-  /* Cells stretch to a common height and the value is pinned to the bottom, so the three
-     numbers share a baseline even when one label wraps to two lines (320px, or English). */
-  justify-content: flex-end;
 }
 
-.headline__label {
+.stats__label {
   font-size: var(--size-meta);
   color: var(--text-muted);
-  letter-spacing: 0.01em;
 }
 
-.headline__value {
-  font-size: var(--size-headline-secondary);
+.stats__qualifier {
+  color: var(--text-faint);
+}
+
+.stats__value {
+  font-size: var(--size-stat);
   font-weight: 600;
   line-height: 1.15;
   letter-spacing: -0.02em;
 }
 
-.headline__cell--lead .headline__label {
+.stats__item--lead .stats__label {
   color: var(--accent);
-  font-weight: 600;
+  font-weight: 500;
 }
 
-.headline__cell--lead .headline__value {
-  font-size: var(--size-headline);
+.stats__item--lead .stats__value {
+  font-size: var(--size-display);
 }
 
-.headline__note {
-  margin-left: 5px;
-  color: var(--text-faint);
-  font-weight: 400;
-}
+/* ------------------------------------------------------------------ workspace */
 
 .workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--sidebar-width);
-  gap: var(--space-5);
+  gap: var(--col-gap);
   min-height: 0;
-  padding-bottom: var(--space-4);
+  padding-bottom: var(--space-5);
 }
 
-.pane {
-  min-width: 0;
-  min-height: 0;
-}
-
-.pane--editor {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.pane--tools {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  overflow: hidden;
-}
+/* ------------------------------------------------------------------ editor */
 
 .editor {
-  flex: 1;
-  width: 100%;
-  min-height: 280px;
-  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: var(--surface);
-  color: var(--text);
-  font-size: var(--size-body);
-  line-height: 1.75;
-  resize: vertical;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
   transition:
-    border-color var(--dur-tap) var(--ease-standard),
-    box-shadow var(--dur-tap) var(--ease-standard);
+    border-color var(--dur-tap) var(--ease),
+    box-shadow var(--dur-tap) var(--ease),
+    background-color var(--dur-tab) var(--ease);
 }
 
-.editor::placeholder {
-  color: var(--text-faint);
-}
-
-.editor:focus {
-  outline: none;
+.editor:focus-within {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-.editor-bar {
+.editor__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  min-height: 52px;
+}
+
+.editor__title {
+  font-size: var(--size-panel);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.editor__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.editor__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.editor__input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-5);
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-size: var(--size-body);
+  line-height: 1.7;
+  resize: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.editor__input::placeholder {
+  color: var(--text-faint);
+}
+
+.editor__foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
   flex-wrap: wrap;
-  min-height: 32px;
+  padding: var(--space-2) var(--space-5);
+  border-top: 1px solid var(--border);
+  min-height: 40px;
 }
 
-.editor-bar__status {
+.editor__note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+  margin: 0;
+  font-size: var(--size-micro);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.editor__note-detail {
+  color: var(--text-faint);
+}
+
+.editor__note-detail::before {
+  content: '· ';
+}
+
+.editor__status {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   flex-wrap: wrap;
-  min-width: 0;
 }
 
-.editor-bar__actions {
+/* ------------------------------------------------------------------ tools */
+
+/*
+ * The panel is not stretched to match the editor: it ends where its content ends, which is what
+ * removes the "data crammed at the top, huge empty space below" look. When the content does
+ * exceed the available height the panel scrolls internally instead of growing the page.
+ */
+.tools {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-left: auto;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-self: start;
+  max-height: 100%;
+  min-height: 0;
 }
 
-.panel {
+.switcher {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  transition: background-color var(--dur-tab) var(--ease);
+}
+
+.switcher__item {
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--size-control);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    background-color var(--dur-tab) var(--ease),
+    color var(--dur-tab) var(--ease),
+    box-shadow var(--dur-tab) var(--ease);
+}
+
+.switcher__item:hover {
+  color: var(--text);
+}
+
+.switcher__item--on {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 500;
+  box-shadow: var(--shadow-sm);
+}
+
+.tools__panel {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  transition:
+    background-color var(--dur-tab) var(--ease),
+    border-color var(--dur-tab) var(--ease);
 }
 
-.footer {
+/* ------------------------------------------------------------------ panel content */
+
+.panel-body {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/*
+ * The empty panel is given room rather than squeezed into a stub: with the card ending where
+ * its content ends, a cramped empty state would read as a rendering failure.
+ */
+.panel-empty {
+  padding: var(--space-6) var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--size-control);
+  line-height: 1.65;
+  text-align: center;
+}
+
+.rule-trigger {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  flex-wrap: wrap;
-  padding: var(--space-3) 0 var(--space-4);
-  border-top: 1px solid var(--border);
-  font-size: var(--size-meta);
+  width: 100%;
+  min-height: 40px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: var(--size-control);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background-color var(--dur-tap) var(--ease),
+    border-color var(--dur-tap) var(--ease);
+}
+
+.rule-trigger:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+.rule-trigger__label {
   color: var(--text-muted);
 }
 
-.footer__sep {
+.rule-trigger__value {
+  margin-left: auto;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rule-trigger__chevron {
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+/* Rule card expands in place; the transition is on opacity/transform only. */
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  animation: panel-in var(--dur-panel) var(--ease);
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rules__group {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rules__legend {
+  padding: 0 0 var(--space-2);
+  font-size: var(--size-micro);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--text-faint);
 }
 
+.rules__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 34px;
+  padding: 5px var(--space-2);
+  border-radius: var(--radius-xs);
+  font-size: var(--size-control);
+  cursor: pointer;
+  transition: background-color var(--dur-tap) var(--ease);
+}
+
+.rules__option:hover {
+  background: var(--surface-hover);
+}
+
+.rules__option input {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: none;
+}
+
+.rules__note {
+  font-size: var(--size-meta);
+  color: var(--accent-strong);
+}
+
+.rules__explain {
+  font-size: var(--size-micro);
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------------ metrics */
+
+.metrics__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.panel-heading {
+  font-size: var(--size-micro);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/*
+ * Rows are separated by rhythm rather than a rule under each one: at this density a line per row
+ * reads as a table and the numbers stop being scannable.
+ */
+.metrics {
+  display: flex;
+  flex-direction: column;
+}
+
+.metrics__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 7px 0;
+}
+
+.metrics__label {
+  font-size: var(--size-control);
+  color: var(--text-muted);
+  min-width: 0;
+}
+
+.metrics__value {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+}
 
 /* ------------------------------------------------------------------ buttons */
 
@@ -331,8 +578,8 @@ h3.section-title {
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
-  min-height: 32px;
-  padding: 6px 12px;
+  min-height: 36px;
+  padding: 7px var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -341,13 +588,13 @@ h3.section-title {
   cursor: pointer;
   white-space: nowrap;
   transition:
-    background-color var(--dur-tap) var(--ease-standard),
-    border-color var(--dur-tap) var(--ease-standard),
-    color var(--dur-tap) var(--ease-standard);
+    background-color var(--dur-tap) var(--ease),
+    border-color var(--dur-tap) var(--ease),
+    color var(--dur-tap) var(--ease);
 }
 
 .btn:hover:not(:disabled) {
-  background: var(--surface-subtle);
+  background: var(--surface-hover);
   border-color: var(--border-strong);
 }
 
@@ -356,8 +603,23 @@ h3.section-title {
 }
 
 .btn:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: default;
+}
+
+/* Borderless button for the editor header, where the card already provides the frame. */
+.btn--quiet {
+  min-height: 34px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 6px var(--space-3);
+}
+
+.btn--quiet:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: transparent;
+  color: var(--text);
 }
 
 .btn--primary {
@@ -376,25 +638,20 @@ h3.section-title {
 .btn--ghost {
   border-color: transparent;
   background: transparent;
-  color: var(--text-muted);
-  padding: 6px 8px;
+  color: var(--text-faint);
+  padding: 6px var(--space-2);
 }
 
 .btn--ghost:hover:not(:disabled) {
-  background: var(--surface-subtle);
+  background: var(--surface-hover);
   color: var(--text);
 }
 
 .btn--icon {
-  min-width: 30px;
-  padding: 4px 8px;
+  min-width: 32px;
+  padding: 4px var(--space-2);
   font-size: 16px;
   line-height: 1;
-}
-
-.btn--wide {
-  width: 100%;
-  margin-bottom: var(--space-4);
 }
 
 .btn--armed {
@@ -403,27 +660,29 @@ h3.section-title {
   background: var(--warn-soft);
 }
 
+/* ------------------------------------------------------------------ segmented control */
+
 .segmented {
   display: inline-flex;
-  padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-subtle);
   gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  transition: background-color var(--dur-tab) var(--ease);
 }
 
 .segmented__item {
-  min-height: 26px;
-  padding: 2px 10px;
+  min-height: 28px;
+  padding: 3px var(--space-3);
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   background: transparent;
   color: var(--text-muted);
   font-size: var(--size-meta);
   cursor: pointer;
   transition:
-    background-color var(--dur-tap) var(--ease-standard),
-    color var(--dur-tap) var(--ease-standard);
+    background-color var(--dur-tap) var(--ease),
+    color var(--dur-tap) var(--ease);
 }
 
 .segmented__item:hover {
@@ -437,229 +696,21 @@ h3.section-title {
   box-shadow: var(--shadow-sm);
 }
 
-.tabs {
-  display: flex;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-2) 0;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  position: relative;
-}
-
-.tab {
-  position: relative;
-  padding: 8px 12px 10px;
-  border: 0;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: var(--size-control);
-  cursor: pointer;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  transition: color var(--dur-tab) var(--ease-standard);
-}
-
-.tab:hover {
-  color: var(--text);
-}
-
-.tab::after {
-  content: '';
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: -1px;
-  height: 2px;
-  border-radius: 2px 2px 0 0;
-  background: var(--accent);
-  transform: scaleX(0);
-  transition: transform var(--dur-tab) var(--ease-standard);
-}
-
-.tab--on {
-  color: var(--text);
-  font-weight: 500;
-}
-
-.tab--on::after {
-  transform: scaleX(1);
-}
-
-/* ------------------------------------------------------------------ panel content */
-
-.panel-body {
-  padding: var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-/*
- * `.panel-body` already spaces its children with `gap`, so the block-level margins these
- * elements carry for standalone use are cancelled here — otherwise each gets double spacing.
- */
-.panel-body > .section-title,
-.panel-body > .btn--wide {
-  margin-bottom: 0;
-}
-
-.hint {
-  font-size: var(--size-meta);
-  color: var(--text-muted);
-  line-height: 1.55;
-}
-
-.hint--busy {
-  color: var(--accent);
-}
-
-.empty-note {
-  padding: var(--space-5) var(--space-3);
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
-  font-size: var(--size-control);
-  text-align: center;
-  line-height: 1.6;
-}
-
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 10px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-subtle);
-  color: var(--text-muted);
-  font-size: var(--size-meta);
-}
-
-.pill--busy {
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-}
-
-.pill--warn {
-  background: var(--warn-soft);
-  color: var(--warn);
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px 8px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-subtle);
-  color: var(--text-muted);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.badge--warn {
-  background: var(--warn-soft);
-  color: var(--warn);
-}
-
-.metric-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.metric-list__row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: 7px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.metric-list__row:last-child {
-  border-bottom: 0;
-}
-
-.metric-list__label {
-  font-size: var(--size-control);
-  color: var(--text-muted);
-  min-width: 0;
-}
-
-.metric-list__value {
-  font-size: 15px;
-  font-weight: 500;
-  margin: 0;
-}
-
-.rules {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  margin-bottom: var(--space-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface-subtle);
-}
-
-.rules__group {
-  border: 0;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.rules__legend {
-  padding: 0 0 4px;
-  font-size: var(--size-meta);
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.rules__option {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 5px 6px;
-  border-radius: var(--radius-sm);
-  font-size: var(--size-control);
-  cursor: pointer;
-  transition: background-color var(--dur-tap) var(--ease-standard);
-}
-
-.rules__option:hover {
-  background: var(--accent-wash);
-}
-
-.rules__option input {
-  accent-color: var(--accent);
-  width: 15px;
-  height: 15px;
-  margin: 0;
-  flex: none;
-}
-
-.rules__note {
-  font-size: var(--size-meta);
-  color: var(--accent-strong);
-}
-
-.rules__explain {
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--text-muted);
-}
+/* ------------------------------------------------------------------ forms */
 
 .input {
   flex: 1;
   min-width: 0;
-  min-height: 34px;
-  padding: 6px 10px;
+  min-height: 40px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
   font-size: var(--size-control);
+  transition:
+    border-color var(--dur-tap) var(--ease),
+    box-shadow var(--dur-tap) var(--ease);
 }
 
 .input::placeholder {
@@ -681,6 +732,7 @@ h3.section-title {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+  min-height: 32px;
   font-size: var(--size-control);
   color: var(--text-muted);
   cursor: pointer;
@@ -689,9 +741,58 @@ h3.section-title {
 
 .check input {
   accent-color: var(--accent);
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
   margin: 0;
+}
+
+.hint {
+  font-size: var(--size-micro);
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.hint--busy {
+  color: var(--accent-strong);
+}
+
+/* ------------------------------------------------------------------ status pills */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  font-size: var(--size-micro);
+}
+
+.pill--busy {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.pill--warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  font-size: var(--size-micro);
+  white-space: nowrap;
+}
+
+.badge--warn {
+  background: var(--warn-soft);
+  color: var(--warn);
 }
 
 /* ------------------------------------------------------------------ search results */
@@ -707,8 +808,8 @@ h3.section-title {
   border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-3);
   transition:
-    border-color var(--dur-tab) var(--ease-standard),
-    background-color var(--dur-tab) var(--ease-standard);
+    border-color var(--dur-tab) var(--ease),
+    background-color var(--dur-tab) var(--ease);
 }
 
 .term--active {
@@ -719,7 +820,7 @@ h3.section-title {
 .term__head {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .term__button {
@@ -728,8 +829,8 @@ h3.section-title {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-2);
-  padding: 4px 2px;
+  gap: var(--space-3);
+  padding: var(--space-1) 2px;
   border: 0;
   background: transparent;
   cursor: pointer;
@@ -770,17 +871,16 @@ h3.section-title {
 }
 
 .context {
-  border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: var(--surface-subtle);
-  padding: var(--space-3);
+  background: var(--surface-sunken);
+  padding: var(--space-4);
 }
 
 .context--empty {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 64px;
+  min-height: 72px;
 }
 
 .context__empty {
@@ -790,7 +890,7 @@ h3.section-title {
 
 .context__text {
   font-size: var(--size-control);
-  line-height: 1.7;
+  line-height: 1.75;
   word-break: break-word;
   overflow-wrap: anywhere;
   color: var(--text-muted);
@@ -823,7 +923,7 @@ h3.section-title {
 }
 
 .sym-total__value {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 600;
 }
 
@@ -860,7 +960,7 @@ h3.section-title {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
-  padding-top: 6px;
+  padding-top: var(--space-2);
 }
 
 .chip,
@@ -868,14 +968,14 @@ h3.section-title {
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
-  padding: 3px 8px;
+  padding: 3px var(--space-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
   cursor: pointer;
   transition:
-    border-color var(--dur-tap) var(--ease-standard),
-    background-color var(--dur-tap) var(--ease-standard);
+    border-color var(--dur-tap) var(--ease),
+    background-color var(--dur-tap) var(--ease);
 }
 
 .chip {
@@ -894,22 +994,24 @@ h3.section-title {
   line-height: 1.2;
 }
 
-.chip__code {
+.chip__code,
+.sym__code {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: -0.01em;
+  font-size: 11px;
   color: var(--text-faint);
 }
 
 .chip__count,
 .sym__count {
-  font-size: 12px;
+  font-size: var(--size-micro);
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
 .sym-cat {
-  margin-bottom: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .sym-cat__head {
@@ -917,9 +1019,6 @@ h3.section-title {
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-2);
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 6px;
 }
 
 .sym-cat__label {
@@ -928,7 +1027,7 @@ h3.section-title {
 }
 
 .sym-cat__meta {
-  font-size: 12px;
+  font-size: var(--size-micro);
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -939,12 +1038,6 @@ h3.section-title {
   gap: var(--space-1);
 }
 
-.sym__code {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-faint);
-}
-
 /* ------------------------------------------------------------------ responsive
  *
  * Every media query lives at the end of the file on purpose: these rules override the base
@@ -952,202 +1045,245 @@ h3.section-title {
  * earlier they were silently beaten by the very rules they were meant to adjust.
  */
 
-@media (max-width: 1000px) {
+@media (max-width: 1100px) {
   :root {
-    --gutter: 16px;
+    --gutter: 24px;
     --sidebar-width: 320px;
-  }
-
-  .workspace {
-    gap: var(--space-4);
-  }
-
-  .brand__tagline {
-    display: none;
   }
 }
 
 /*
  * Phones and portrait tablets: stack.
  *
- * Two columns need about 790px to leave the editor a usable width, but the deciding factor is
+ * Two columns need roughly 800px to leave the editor a usable width, but the deciding factor is
  * the aspect ratio, not the width alone — a portrait tablet at 834px is better served by a
  * full-width editor with the panel below it than by a 466px-wide column beside a 320px panel.
  */
 @media (max-width: 900px), (max-width: 1100px) and (orientation: portrait) {
+  :root {
+    --gutter: 20px;
+  }
+
   .app {
     display: flex;
     flex-direction: column;
     height: auto;
     min-height: 100vh;
     min-height: 100dvh;
+    /* Keep content clear of the home indicator and of landscape notches. */
+    padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+    padding-left: max(var(--gutter), env(safe-area-inset-left));
+    padding-right: max(var(--gutter), env(safe-area-inset-right));
   }
 
-  .headline {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--space-2) var(--space-3);
-    padding-bottom: var(--space-3);
-    margin-bottom: var(--space-4);
+  .stats {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-1) var(--space-4);
+    padding-bottom: var(--space-5);
   }
 
-  .headline__value {
+  /* The primary count takes its own row; the two secondary figures sit below it. */
+  .stats__item--lead {
+    grid-column: 1 / -1;
+  }
+
+  .stats__item--lead .stats__value {
+    font-size: 36px;
+  }
+
+  .stats__value {
     font-size: 22px;
-  }
-
-  .headline__cell--lead .headline__value {
-    font-size: 28px;
   }
 
   .workspace {
     grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
   }
 
   /*
    * `flex: none` is required: the default `flex: 1` sets `flex-basis: 0`, which wins over
    * `height` in a column flex container whose own height is content-based, collapsing the
-   * editor to a few lines. `min-height` is the guard in case `svh` is unsupported; `svh` rather
-   * than `dvh` so the editor does not resize as the mobile URL bar hides.
+   * editor to a few lines. `svh` rather than `dvh` so the editor does not resize as the mobile
+   * URL bar hides; `min-height` is the guard in case `svh` is unsupported.
    */
   .editor {
     flex: none;
-    height: 42vh;
-    height: 42svh;
-    min-height: 220px;
-    resize: none;
-    padding: var(--space-4);
+    height: 46vh;
+    height: 46svh;
+    min-height: 240px;
   }
 
-  .pane--tools {
-    min-height: 320px;
+  .editor__input {
+    padding: var(--space-4) var(--space-5);
   }
 
-  .panel {
+  .tools {
+    align-self: stretch;
+    max-height: none;
+  }
+
+  .tools__panel {
     overflow: visible;
   }
 }
 
 /*
- * Short viewports — landscape phones, or a laptop with browser chrome taking a large share.
- * Vertical space, not width, is the scarce resource here: stacking would put the tools below
- * the fold and leave the editor 158px tall, so two compact columns win. Declared after the
- * stacking block so it overrides it.
+ * Short viewports — landscape phones, or a laptop whose browser chrome takes a large share.
+ * Vertical space, not width, is the scarce resource: stacking would put the tools below the
+ * fold and leave a 158px editor, so two compact columns win.
  */
 @media (max-height: 560px) {
   .app {
     display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, 1fr);
     height: 100vh;
     height: 100dvh;
     min-height: 0;
   }
 
-  .headline {
-    padding: var(--space-2) 0 var(--space-2);
-    margin-bottom: var(--space-3);
+  .topbar {
+    min-height: 48px;
+    padding: var(--space-1) 0;
   }
 
-  .headline__value {
-    font-size: 20px;
+  .stats {
+    grid-template-columns: 1.2fr 1fr 1fr;
+    padding: var(--space-1) 0 var(--space-3);
+    gap: var(--space-2) var(--space-4);
   }
 
-  .headline__cell--lead .headline__value {
-    font-size: 24px;
+  .stats__item--lead .stats__value {
+    font-size: 26px;
   }
 
-  .headline__note {
-    display: none;
+  .stats__value {
+    font-size: 18px;
   }
 
   .workspace {
-    grid-template-columns: minmax(0, 1fr) minmax(200px, 36%);
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 38%);
     gap: var(--space-3);
     padding-bottom: var(--space-2);
   }
 
-  .editor {
-    flex: 1;
-    height: auto;
-    min-height: 0;
-    resize: none;
-    padding: var(--space-3);
+  .editor__head {
+    min-height: 44px;
   }
 
-  .editor-bar {
-    min-height: 0;
+  .editor__input {
+    padding: var(--space-3) var(--space-4);
   }
 
-  .pane--tools {
-    min-height: 0;
+  .editor__foot {
+    min-height: 32px;
+    padding: var(--space-1) var(--space-4);
   }
 
-  .panel {
+  .tools {
+    align-self: stretch;
+    max-height: none;
+  }
+
+  .tools__panel {
     overflow-y: auto;
   }
 
-  .footer {
-    padding: var(--space-2) 0;
+  .panel-body {
+    padding: var(--space-4);
+    gap: var(--space-4);
   }
 }
 
 @media (max-width: 560px) {
-  /* Let the controls drop to their own row instead of squeezing the brand. */
+  :root {
+    --gutter: 16px;
+  }
+
   .topbar {
     flex-wrap: wrap;
     row-gap: var(--space-1);
+    min-height: 56px;
   }
 
-  .topbar__actions {
+  .topbar__controls {
     width: 100%;
     justify-content: flex-start;
   }
 
-  .brand__mark {
-    display: none;
+  .editor__head {
+    padding-left: var(--space-4);
+  }
+
+  .editor__foot {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
+  .editor__note {
+    line-height: 1.45;
+  }
+}
+
+/*
+ * Touch targets. Applied on pointer type rather than width, so a touch laptop benefits too;
+ * the visual size stays modest while the hit area reaches the 44px guideline.
+ */
+@media (pointer: coarse) {
+  .btn,
+  .btn--quiet,
+  .rule-trigger,
+  .input {
+    min-height: 44px;
+  }
+
+  .switcher__item {
+    min-height: 42px;
+  }
+
+  .segmented__item {
+    min-height: 36px;
+  }
+
+  .check,
+  .rules__option {
+    min-height: 44px;
+  }
+
+  .chip,
+  .sym {
+    min-height: 34px;
   }
 }
 
 @media (max-width: 380px) {
-  /* The three controls need ~292px at default padding, which does not fit the 273px available
-     at 320px, so the header wrapped onto a third row and ate 116px of a 568px screen. */
-  .segmented__item {
-    padding: 2px 5px;
-    font-size: 12px;
-  }
-
+  /* The three header controls need ~292px at default padding, which does not fit the 273px
+     available at 320px, so the header would wrap onto a third row. */
   .segmented {
     gap: 1px;
   }
 
+  .segmented__item {
+    padding: 3px 6px;
+    font-size: var(--size-micro);
+  }
+
   .brand__name {
-    font-size: 15px;
+    font-size: 16px;
   }
 
-  .topbar,
-  .topbar__actions {
-    gap: var(--space-1);
+  .topbar__controls {
+    gap: var(--space-2);
   }
 
-  .btn--ghost {
-    padding: 6px 5px;
+  .stats__item--lead .stats__value {
+    font-size: 30px;
   }
 
-  .editor {
-    min-height: 200px;
+  .stats__value {
+    font-size: 19px;
   }
 
-  .pane--tools {
-    min-height: 280px;
-  }
-
-  .headline__value {
-    font-size: 20px;
-  }
-
-  .headline__cell--lead .headline__value {
-    font-size: 24px;
-  }
-
-  .headline__label {
-    font-size: 12px;
+  .panel-body {
+    padding: var(--space-4);
   }
 }

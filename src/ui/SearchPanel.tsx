@@ -149,7 +149,7 @@ export function SearchPanel() {
       <p class="hint">{t('search.hint')}</p>
       <p class="hint">{t('search.overlapHint')}</p>
 
-      {terms.length === 0 ? <p class="empty-note">{t('search.empty')}</p> : null}
+      {terms.length === 0 ? <p class="panel-empty">{t('search.empty')}</p> : null}
       {status === 'running' && terms.length > 0 ? (
         <p class="hint hint--busy">{t('search.running')}</p>
       ) : null}

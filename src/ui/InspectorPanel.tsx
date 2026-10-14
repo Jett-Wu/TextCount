@@ -84,7 +84,7 @@ export function InspectorPanel() {
   if (textLength === 0) {
     return (
       <div class="panel-body">
-        <p class="empty-note">{t('symbols.emptyText')}</p>
+        <p class="panel-empty">{t('symbols.emptyText')}</p>
       </div>
     );
   }
@@ -106,11 +106,11 @@ export function InspectorPanel() {
         <span class="value sym-total__value">{report.total}</span>
       </div>
 
-      {report.empty ? <p class="empty-note">{t('symbols.empty')}</p> : null}
+      {report.empty ? <p class="panel-empty">{t('symbols.empty')}</p> : null}
 
       {report.groups.length > 0 ? (
         <>
-          <h3 class="section-title">{t('symbols.related')}</h3>
+          <h3 class="panel-heading">{t('symbols.related')}</h3>
           <ul class="group-list">
             {report.groups.map((group) => {
               const label = GROUP_LABELS[group.id];
@@ -152,7 +152,7 @@ export function InspectorPanel() {
         </>
       ) : null}
 
-      <h3 class="section-title">{t('symbols.categories')}</h3>
+      <h3 class="panel-heading">{t('symbols.categories')}</h3>
       {report.categories
         .filter((category) => category.count > 0)
         .map((category) => (

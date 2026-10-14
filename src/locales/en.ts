@@ -11,6 +11,7 @@ import type { Messages } from './zh-CN';
 export const en: Messages = {
   'app.name': 'TextCount',
   'app.tagline': 'Local-first text counting',
+  'tools.label': 'Inspection tools',
 
   'topbar.language': 'Language',
   'topbar.theme': 'Theme',
@@ -26,13 +27,13 @@ export const en: Messages = {
   'headline.primary.latinWords': 'English words',
   'headline.primary.charsNoSpace': 'Characters without spaces',
   'headline.graphemes': 'Characters',
-  'headline.graphemesNote': 'including spaces',
+  'headline.graphemesNote': ' (with spaces)',
 
   'tool.stats': 'Statistics',
   'tool.search': 'Find',
   'tool.symbols': 'Punctuation',
 
-  'stats.detail': 'Details',
+  'stats.summary': 'Summary',
   'stats.metric.han': 'Han characters',
   'stats.metric.kana': 'Kana',
   'stats.metric.latinWords': 'English words',
@@ -45,7 +46,6 @@ export const en: Messages = {
   'stats.metric.paragraphs': 'Paragraphs',
   'stats.metric.utf16Length': 'UTF-16 length',
   'stats.rules.open': 'Counting rules',
-  'stats.rules.close': 'Hide',
   'stats.rules.primary': 'Count the headline number as',
   'stats.rules.primary.mixed': 'Mixed Chinese/English words',
   'stats.rules.primary.han': 'Han characters only',
@@ -55,6 +55,9 @@ export const en: Messages = {
   'stats.rules.punctuation': 'Count every punctuation mark as one unit',
   'stats.rules.note': 'Changing the rules never edits or clears your text.',
   'stats.rules.options': 'Counted in the headline number',
+  'stats.emptyHint': 'Paste or type text to see the detailed breakdown here.',
+  'stats.group.counts': 'Counts',
+  'stats.group.structure': 'Text structure',
   'stats.rules.explain.mixed':
     '1 per Han character + 1 per kana character + 1 per English word + 1 per run of digits (optional) + 1 per word in other scripts. Punctuation, whitespace and emoji are excluded by default.',
   'stats.rules.explain.han':
@@ -64,16 +67,20 @@ export const en: Messages = {
   'stats.rules.explain.charsNoSpace':
     'Counts user-perceived characters (Unicode grapheme clusters) and excludes whitespace; an emoji, a flag or an accented letter counts once.',
 
+  'editor.title': 'Text',
   'editor.placeholder': 'Paste or type text to count it instantly',
   'editor.ariaLabel': 'Text input',
   'editor.clear': 'Clear',
   'editor.clearConfirm': 'Click again to clear',
   'editor.clearConfirmHint': 'This text is long, so clearing needs a second click.',
   'editor.copy': 'Copy all',
+  'editor.copyHint': 'Copy the whole text to the clipboard',
   'editor.copied': 'Copied',
   'editor.copyFailed': 'Copy failed',
   'editor.computing': 'Counting…',
-  'editor.readonlyNotice': 'This is a long text. It is still counted in full; nothing is truncated.',
+  'editor.longText': 'Long text',
+  'editor.localNote': 'Processed locally · your text is never uploaded',
+  'editor.hostingNote': 'The hosting platform may keep standard access logs.',
   'editor.degradedNotice':
     'Background counting is unavailable in this browser, so very long texts may pause briefly while counting. Results are still complete.',
 
@@ -146,7 +153,4 @@ export const en: Messages = {
   'symbols.group.corner-bracket': 'Corner brackets',
   'symbols.group.book-title': 'Title marks',
   'symbols.group.lenticular': 'Lenticular brackets',
-
-  'footer.local': 'Your text stays on this device. It is processed locally.',
-  'footer.hosting': 'The hosting platform may keep standard access logs.',
 };

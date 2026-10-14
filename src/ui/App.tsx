@@ -1,18 +1,13 @@
 /**
  * Application shell.
  *
- * The layout is the product promise in structural form: a compact header, the three headline
- * numbers always visible, the text area as the largest element, and a narrow tool panel beside
- * it. Nothing is hidden below a hero, and the tools never replace the editor.
+ * The layout states the product's priorities: the numbers sit directly above the workspace and
+ * stay aligned with it, the text area is by far the largest element, and the tools are a narrow
+ * secondary column. Nothing is hidden behind a hero and the tools never replace the editor.
  */
 
 import { useEffect } from 'preact/hooks';
-import {
-  LOCALE_LABELS,
-  LOCALE_SHORT_LABELS,
-  LOCALES,
-  type LocaleId,
-} from '../locales';
+import { LOCALE_LABELS, LOCALE_SHORT_LABELS, LOCALES, type LocaleId } from '../locales';
 import {
   appStore,
   setActiveTool,
@@ -44,10 +39,9 @@ function TopBar() {
           T
         </span>
         <span class="brand__name">{t('app.name')}</span>
-        <span class="brand__tagline">{t('app.tagline')}</span>
       </div>
 
-      <div class="topbar__actions">
+      <div class="topbar__controls">
         <Segmented<LocaleId>
           name="locale"
           ariaLabel={t('topbar.language')}
@@ -76,33 +70,34 @@ function TopBar() {
 }
 
 /**
- * Always rendered, never swapped for a spinner, so the layout does not jump while counting.
+ * The three headline numbers.
  *
- * The "including spaces" qualifier sits inside the label rather than under the number: the
- * cells stretch to a common height and the values are bottom-aligned, so anything placed after
- * a value would push that one number out of line with the others.
+ * Always rendered — never swapped for a spinner — so the layout cannot jump while a long text
+ * is being counted. Cells stretch to a common height and the values are bottom-aligned, so the
+ * three numbers share one baseline even when a label wraps; anything placed after a value would
+ * push that single number out of line.
  */
-function Headline() {
+function Stats() {
   const t = useTranslate();
   const stats = useStore(appStore, (state) => state.stats);
   const metric = useStore(appStore, (state) => state.countSettings.primaryMetric);
 
   return (
-    <section class="headline" role="group" aria-label={t('stats.detail')}>
-      <div class="headline__cell headline__cell--lead">
-        <span class="headline__label">{t(`headline.primary.${metric}`)}</span>
-        <NumberValue value={stats.primary} class="headline__value" />
+    <section class="stats" aria-label={t('stats.summary')}>
+      <div class="stats__item stats__item--lead">
+        <span class="stats__label">{t(`headline.primary.${metric}`)}</span>
+        <NumberValue value={stats.primary} class="stats__value" />
       </div>
-      <div class="headline__cell">
-        <span class="headline__label">
+      <div class="stats__item">
+        <span class="stats__label">
           {t('headline.graphemes')}
-          <span class="headline__note">{t('headline.graphemesNote')}</span>
+          <span class="stats__qualifier">{t('headline.graphemesNote')}</span>
         </span>
-        <NumberValue value={stats.graphemes} class="headline__value" />
+        <NumberValue value={stats.graphemes} class="stats__value" />
       </div>
-      <div class="headline__cell">
-        <span class="headline__label">{t('headline.primary.charsNoSpace')}</span>
-        <NumberValue value={stats.graphemesNoWhitespace} class="headline__value" />
+      <div class="stats__item">
+        <span class="stats__label">{t('headline.primary.charsNoSpace')}</span>
+        <NumberValue value={stats.graphemesNoWhitespace} class="stats__value" />
       </div>
     </section>
   );
@@ -112,7 +107,7 @@ function Headline() {
  * Statistics, search and punctuation share one document and one panel slot rather than living
  * on separate pages. Switching views never touches the textarea, so nothing is lost.
  */
-function ToolPanel() {
+function Tools() {
   const t = useTranslate();
   const active = useStore(appStore, (state) => state.activeTool);
 
@@ -125,8 +120,8 @@ function ToolPanel() {
   };
 
   return (
-    <aside class="pane pane--tools">
-      <div class="tabs" role="tablist" aria-label={t('stats.detail')}>
+    <aside class="tools">
+      <div class="switcher" role="tablist" aria-label={t('tools.label')}>
         {TOOLS.map((tool) => {
           const selected = tool === active;
           return (
@@ -135,7 +130,7 @@ function ToolPanel() {
               type="button"
               role="tab"
               id={`textcount-tab-${tool}`}
-              class={selected ? 'tab tab--on' : 'tab'}
+              class={selected ? 'switcher__item switcher__item--on' : 'switcher__item'}
               aria-selected={selected}
               aria-controls={`textcount-panel-${tool}`}
               tabIndex={selected ? 0 : -1}
@@ -157,7 +152,7 @@ function ToolPanel() {
       </div>
 
       <div
-        class="panel"
+        class="tools__panel"
         role="tabpanel"
         id={`textcount-panel-${active}`}
         aria-labelledby={`textcount-tab-${active}`}
@@ -196,18 +191,11 @@ export function App() {
   return (
     <div class="app">
       <TopBar />
-      <Headline />
+      <Stats />
       <main class="workspace">
         <Editor />
-        <ToolPanel />
+        <Tools />
       </main>
-      <footer class="footer">
-        <span>{t('footer.local')}</span>
-        <span class="footer__sep" aria-hidden="true">
-          ·
-        </span>
-        <span class="muted">{t('footer.hosting')}</span>
-      </footer>
     </div>
   );
 }
