@@ -293,12 +293,18 @@ export function WordCloud({
             <text
               x={placement.x}
               y={placement.y}
-              fontSize={placement.fontSize}
-              textAnchor="middle"
-              dominantBaseline="middle"
+              /*
+               * Hyphenated SVG attribute names, not the camelCase IDL spellings. Preact writes
+               * these straight through with `setAttribute`, so `fontSize` produced a literal
+               * `fontSize` attribute that SVG ignores: every word rendered at the 16px default,
+               * left-anchored and fully opaque, which also invalidated the collision boxes.
+               */
+              font-size={placement.fontSize}
+              text-anchor="middle"
+              dominant-baseline="middle"
               fill="currentColor"
               // Opacity, not colour: it rides on the inherited ink, so both themes stay readable.
-              fillOpacity={0.55 + (0.45 * (placement.fontSize - minFontSize)) / scale}
+              fill-opacity={0.55 + (0.45 * (placement.fontSize - minFontSize)) / scale}
             >
               <title>{label}</title>
               {placement.term}

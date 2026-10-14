@@ -766,6 +766,18 @@ select {
   color: var(--accent-strong);
 }
 
+/*
+ * A limitation the user must act on, not background information: without a dictionary the word
+ * ranking is not a word list at all. It reads as a notice rather than as fine print.
+ */
+.hint--warn {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-sm);
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
 /* ------------------------------------------------------------------ status pills */
 
 .pill {

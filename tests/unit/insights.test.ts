@@ -191,16 +191,51 @@ describe('frequency', () => {
     expect(report.distinct).toBe(1);
   });
 
+  it('drops single-character terms from the word ranking', () => {
+    /*
+     * On real Chinese prose ICU returns fragments alongside words — 法 from 四阶段法, 客 from
+     * 客流, 性 from 准确性 — and because those characters are frequent they outrank the actual
+     * words. Measured on a 640-character article before this rule existed, the top seven were
+     * 法/预测/方法/客/类/流: three fragments among the four highest. Spaces here force the
+     * segmentation so the expectation is exact.
+     */
+    const report = analyzeFrequency('法 方法 方法');
+    expect(report.entries).toEqual([{ term: '方法', count: 2 }]);
+    expect(report.distinct).toBe(1);
+    // Filtered tokens are still counted as tokens; only the ranking excludes them.
+    expect(report.totalTokens).toBe(3);
+  });
+
+  it('keeps single characters when the caller asks for them', () => {
+    const report = analyzeFrequency('法 方法 方法', { minTermLength: 1 });
+    expect(report.entries.map((entry) => entry.term)).toEqual(['方法', '法']);
+    expect(report.distinct).toBe(2);
+  });
+
+  it('does not flag Chinese text as degraded just because engines differ', () => {
+    /*
+     * Segmentation quality varies by engine — Firefox splits 工具 into two fragments and merges
+     * 对上原文 into 上原 — but that is not a failure the module can detect, so `degraded` must stay
+     * false. It means only "Intl.Segmenter was missing or threw", which is a different claim.
+     */
+    expect(analyzeFrequency('这是一个工具').degraded).toBe(false);
+    expect(analyzeFrequency('这是一个工具', { unit: 'character' }).degraded).toBe(false);
+    expect(analyzeFrequency('the cat sat').degraded).toBe(false);
+  });
+
   it('counts every Chinese segment in the whole text, not a sample of it', () => {
     const report = analyzeFrequency('这是一个工具，这是一个小工具。');
     expect(report.degraded).toBe(false);
+    // Nine word-like segments in total; the ranking keeps only the two-character one, because a
+    // single character is a candidate fragment and belongs to the 'character' unit instead.
     expect(report.totalTokens).toBe(9);
-    expect(report.entries[0]).toEqual({ term: '工具', count: 2 });
-    expect(report.distinct).toBe(2);
-    expect(report.entries).toEqual([
-      { term: '工具', count: 2 },
-      { term: '小', count: 1 },
-    ]);
+    expect(report.entries).toEqual([{ term: '工具', count: 2 }]);
+    expect(report.distinct).toBe(1);
+
+    // The same text under the character unit reports the single characters that word mode drops.
+    const characters = analyzeFrequency('这是一个工具，这是一个小工具。', { unit: 'character' });
+    expect(characters.entries.map((entry) => entry.term)).toContain('小');
+    expect(characters.entries.map((entry) => entry.term)).toContain('工');
   });
 
   it('counts Han and Kana characters only when the unit is character', () => {

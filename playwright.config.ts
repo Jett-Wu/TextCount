@@ -26,7 +26,15 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: onCi,
   retries: onCi ? 1 : 0,
-  ...(onCi ? { workers: 2 } : {}),
+  /*
+   * Running three engines at once starves them on a normal machine: measured here, the same 32
+   * tests failed in a different place on almost every parallel cross-engine run — a symbol group
+   * missing, a cloud SVG missing, a unit switch never landing — and every one of them passed when
+   * its engine ran on its own. Serial cross-engine runs cost about 60s against 45s and are
+   * reproducible, which is the only property that matters for a release gate. Chromium alone keeps
+   * the default parallelism, where there is nothing to contend with.
+   */
+  ...(crossBrowser ? { workers: 1 } : onCi ? { workers: 2 } : {}),
   reporter: onCi ? [['list'], ['html', { open: 'never' }]] : [['list']],
 
   use: {

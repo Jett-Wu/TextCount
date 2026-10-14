@@ -228,7 +228,11 @@ export interface FrequencyReport {
   entries: FrequencyEntry[];
   /** True when `entries` holds fewer entries than `distinct`. */
   truncated: boolean;
-  /** True when `Intl.Segmenter` was unavailable and the regex fallback ran. */
+  /**
+   * True when `Intl.Segmenter` was unavailable or threw and the regex fallback ran. It does NOT
+   * mean the ranking is a good word list: every engine segments Chinese differently and some do it
+   * badly, which no flag can capture — see the note above `getWordSegmenter`.
+   */
   degraded: boolean;
 }
 
@@ -240,6 +244,12 @@ export interface FrequencyOptions {
   filterStopWords?: boolean;
   /** Drop tokens that are only decimal digits. Default true. */
   excludeNumbers?: boolean;
+  /**
+   * Shortest term kept in the `'word'` unit, in code points. Default 2, because a single
+   * character is usually a segmentation fragment rather than a word; the `'character'` unit is
+   * where single characters belong. Set to 1 to keep everything the segmenter returns.
+   */
+  minTermLength?: number;
   /** Default 200. */
   maxEntries?: number;
 }
@@ -280,6 +290,22 @@ const STOP_WORDS: ReadonlySet<string> = new Set([
 
 /** Cache the failure as well: a runtime without `Intl.Segmenter` never grows one mid-session. */
 let wordSegmenterCache: Intl.Segmenter | null | undefined;
+
+/*
+ * Everyone's `Intl.Segmenter` is not the same segmenter, and the difference is quality rather than
+ * detail. Measured on the same 640-character Chinese article:
+ *
+ *   Chromium / WebKit ICU   预测:7  方法:6  模型:5  数据:5  线路:5 …   a usable word list
+ *   Firefox ICU             上原:1  定位:1  排序:1  第一:1  段落:1 …   splits 工具 into two
+ *                                                                     fragments and merges
+ *                                                                     the unrelated 对上原文
+ *                                                                     into 上原
+ *
+ * Firefox does have a Chinese dictionary, so this is not a "no dictionary" case that could be
+ * detected and announced — a probe phrase like 这是一个工具 passes there. It is simply a weaker
+ * dictionary. The honest response is the standing note in the UI plus keeping the ranking
+ * switchable to characters, rather than hiding the list or claiming a limitation that is not real.
+ */
 
 function getWordSegmenter(locale: string | undefined): Intl.Segmenter | null {
   /**
@@ -379,6 +405,7 @@ export function analyzeFrequency(text: string, options?: FrequencyOptions): Freq
   // Both filters define a word list, and a character report is explicitly not one.
   const filterStopWords = unit === 'word' && (options?.filterStopWords ?? true);
   const excludeNumbers = unit === 'word' && (options?.excludeNumbers ?? true);
+  const minTermLength = unit === 'word' ? Math.max(1, options?.minTermLength ?? 2) : 1;
 
   let counted: Map<string, number>;
   let totalTokens: number;
@@ -394,6 +421,11 @@ export function analyzeFrequency(text: string, options?: FrequencyOptions): Freq
     counted = new Map<string, number>();
     const keep = (term: string): boolean => {
       if (excludeNumbers && NO_LETTER.test(term)) return false;
+      // A one-character term in a word report is almost always a segmentation fragment rather
+      // than a word: on real Chinese prose ICU yields 法 from 四阶段法, 客 from 客流, 性 from
+      // 准确性, and those fragments then outrank the actual words. Single characters are what
+      // the 'character' unit is for, so nothing is lost — it is reported where it belongs.
+      if (codePointLength(term) < minTermLength) return false;
       return !(filterStopWords && STOP_WORDS.has(term));
     };
     const segmenter = getWordSegmenter(locale);

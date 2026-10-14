@@ -554,6 +554,37 @@ test.describe('insights', () => {
     expect(labels.length).toBeGreaterThan(0);
     for (const label of labels) expect(label).toMatch(/^.+: \d+/);
 
+    /*
+     * The rendered attributes are asserted, not just the props. `fontSize`, `textAnchor` and
+     * `fillOpacity` all type-check as JSX but Preact writes them through verbatim, so SVG ignored
+     * them: every word drew at the 16px default, left-anchored and fully opaque, and the layout's
+     * collision boxes no longer matched the drawn text. Nothing about the output looked broken
+     * enough to notice without measuring.
+     */
+    const rendered = await page.locator('.cloud svg text').evaluateAll((nodes) =>
+      nodes.map((node) => ({
+        size: Number(node.getAttribute('font-size')),
+        opacity: Number(node.getAttribute('fill-opacity')),
+        anchor: node.getAttribute('text-anchor'),
+        baseline: node.getAttribute('dominant-baseline'),
+      })),
+    );
+    for (const word of rendered) {
+      expect(Number.isFinite(word.size) && word.size > 0).toBe(true);
+      expect(Number.isFinite(word.opacity) && word.opacity > 0).toBe(true);
+      expect(word.anchor).toBe('middle');
+      expect(word.baseline).toBe('middle');
+    }
+    /*
+     * Sizes must encode frequency rather than all collapsing to one value — but only where the
+     * counts actually differ. Firefox has no Chinese dictionary, so every count there is 1 and a
+     * single size is the correct output, not a regression.
+     */
+    const counts = labels.map((label) => Number(/^.+: (\d+)/.exec(label)?.[1] ?? '0'));
+    if (new Set(counts).size > 1) {
+      expect(new Set(rendered.map((word) => word.size)).size).toBeGreaterThan(1);
+    }
+
     // The word must be genuinely clickable. Each word is a group holding the drawn text plus a
     // transparent hit rectangle, so the click is aimed at the group: hit-testing the `<text>`
     // alone misses a point that lands between two glyphs.
@@ -575,6 +606,40 @@ test.describe('insights', () => {
 
     // Nothing has opened the cloud view, so its chunk must not have been fetched.
     expect(requests.filter((url) => /WordCloud/i.test(url))).toEqual([]);
+  });
+
+  test('states that segmentation is engine-dependent in the ranking', async ({ page }) => {
+    /*
+     * The word list genuinely differs by engine — Firefox splits 工具 into two fragments and
+     * merges 对上原文 into 上原, so its counts are all 1 — and no flag can detect that, because
+     * Firefox does have a Chinese dictionary, just a weaker one. The standing note is the
+     * limitation statement, so it has to be there whenever a word ranking is.
+     */
+    await page.goto('/');
+    await setText(page, '这是一个工具，这是一个小工具。');
+    await page.locator('#textcount-tab-insights').click();
+    await page
+      .locator('[data-testid="insights-views"]')
+      .getByRole('button', { name: 'Frequency' })
+      .click();
+    await expect(page.locator('[data-testid="insights-engine-note"]')).toBeVisible();
+
+    // `degraded` keeps its narrow meaning, so it must not fire merely because engines differ.
+    await expect(page.locator('[data-testid="insights-degraded"]')).toHaveCount(0);
+  });
+
+  test('carries the segmentation caveat into the cloud', async ({ page }) => {
+    // The cloud is where a wrong word list looks most convincing. English is used because it
+    // segments everywhere, so this stays a test of the caveat and not of the segmenter.
+    await page.goto('/');
+    await setText(page, 'the cat sat on the mat, the cat sat.');
+    await page.locator('#textcount-tab-insights').click();
+    await page
+      .locator('[data-testid="insights-views"]')
+      .getByRole('button', { name: 'Cloud' })
+      .click();
+    await expect(page.locator('.cloud svg')).toBeVisible();
+    await expect(page.locator('[data-testid="insights-engine-note"]')).toBeVisible();
   });
 
   test('shows an empty state before any text is entered', async ({ page }) => {

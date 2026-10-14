@@ -170,7 +170,6 @@ function Tools() {
 export function App() {
   const t = useTranslate();
   const locale = useLocale();
-  const ruleMenuOpen = useStore(appStore, (state) => state.ruleMenuOpen);
   const insightsOpen = useStore(appStore, (state) => state.activeTool === 'insights');
 
   useEffect(() => {
@@ -181,14 +180,21 @@ export function App() {
     document.title = `${t('app.name')} — ${t('app.tagline')}`;
   }, [t]);
 
+  /*
+   * Attached once rather than only while the menu is open. Gating it on `ruleMenuOpen` left a
+   * window — from the click that opens the menu until the effect runs — during which the menu was
+   * on screen and Escape did nothing; WebKit reproduced it, and a listener that exists only after
+   * a render is a needless dependency on render timing.
+   */
   useEffect(() => {
-    if (!ruleMenuOpen) return undefined;
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') appStore.set({ ruleMenuOpen: false });
+      if (event.key !== 'Escape') return;
+      if (!appStore.get().ruleMenuOpen) return;
+      appStore.set({ ruleMenuOpen: false });
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [ruleMenuOpen]);
+  }, []);
 
   return (
     <div class="app">

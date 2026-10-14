@@ -53,11 +53,11 @@ export const en: Messages = {
   'insights.frequency.unit.character': 'Characters',
   'insights.frequency.filter': 'Filter common function words',
   'insights.frequency.engineNote':
-    'Segmentation comes from the browser; results for Chinese differ between engines and are not linguistic words.',
+    'Segmentation comes from the browser; results for Chinese differ between engines and are not linguistic words. Word mode keeps terms of two characters or more — switch to Characters to see single characters.',
   'insights.frequency.characterNote':
     'Character frequency counts Han and kana only — no Latin letters, digits or punctuation.',
   'insights.frequency.degraded':
-    'This browser cannot segment by language, so counting fell back to per-character; treat the ranking as indicative only.',
+    'This browser ships no Chinese dictionary for segmentation, so the word list is not reliable — it splits 工具 into single characters and merges unrelated ones. Switch to Characters for a sound result.',
   'insights.frequency.summary': '{tokens} units · {distinct} distinct',
   'insights.frequency.locate': 'Reveal the first occurrence of this term',
   'insights.frequency.capped': 'Top {shown} shown; {distinct} distinct in total.',

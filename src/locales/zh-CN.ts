@@ -51,10 +51,10 @@ export const zhCN = {
   'insights.frequency.unit.character': '单字',
   'insights.frequency.filter': '过滤常见虚词',
   'insights.frequency.engineNote':
-    '分词由浏览器提供，中文分词结果会随浏览器而异，不等于语言学意义上的词。',
+    '分词由浏览器提供，中文分词结果会随浏览器而异，不等于语言学意义上的词。词语模式只保留两个字符以上的词条；查看单字请切换到「单字」。',
   'insights.frequency.characterNote': '单字统计只计汉字与日文假名，不含拉丁字母、数字与标点。',
   'insights.frequency.degraded':
-    '当前浏览器不支持按语言分词，已退化为逐字统计；词频结果仅供参考。',
+    '当前浏览器没有提供中文词典分词，词语结果不可靠（它会把「工具」拆成两个字，又把不相邻的字并成一个词）。建议切换到「单字」查看。',
   'insights.frequency.summary': '共 {tokens} 个单位 · {distinct} 种',
   'insights.frequency.locate': '定位该词在原文中的第一处',
   'insights.frequency.capped': '这里显示前 {shown} 项，共 {distinct} 种。',

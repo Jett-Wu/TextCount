@@ -25,7 +25,8 @@ const ANALYSIS_DEBOUNCE_MS = 200;
 /** Rows rendered at once. Far more than this and the panel becomes a scroll marathon. */
 const PARAGRAPH_ROWS = 60;
 const FREQUENCY_ROWS = 40;
-const CLOUD_WORDS = 40;
+/** The design reference suggests 30–60 words; 30 is what breathes in a 390px-wide panel. */
+const CLOUD_WORDS = 30;
 const CLOUD_HEIGHT = 300;
 
 type InsightView = 'paragraphs' | 'frequency' | 'cloud';
@@ -289,13 +290,19 @@ function FrequencyView({
             />
             <span>{t('insights.frequency.filter')}</span>
           </label>
-          <p class="hint">{t('insights.frequency.engineNote')}</p>
+          <p class="hint" data-testid="insights-engine-note">
+            {t('insights.frequency.engineNote')}
+          </p>
         </>
       ) : (
         <p class="hint">{t('insights.frequency.characterNote')}</p>
       )}
 
-      {degraded ? <p class="hint hint--busy">{t('insights.frequency.degraded')}</p> : null}
+      {degraded ? (
+        <p class="hint hint--warn" data-testid="insights-degraded">
+          {t('insights.frequency.degraded')}
+        </p>
+      ) : null}
 
       <p class="hint" data-testid="insights-summary">
         {t('insights.frequency.summary', { tokens: totalTokens, distinct })}
@@ -395,6 +402,10 @@ function CloudView({
         </p>
       ) : null}
       <p class="hint">{t('insights.cloud.note')}</p>
+      {/* The cloud is where a wrong word list looks most convincing, so the caveat travels with it. */}
+      <p class="hint" data-testid="insights-engine-note">
+        {t('insights.frequency.engineNote')}
+      </p>
     </>
   );
 }
