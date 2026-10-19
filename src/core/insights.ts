@@ -445,7 +445,19 @@ export function analyzeFrequency(text: string, options?: FrequencyOptions): Freq
   }
 
   const ranked: FrequencyEntry[] = [...counted].map(([term, count]) => ({ term, count }));
-  ranked.sort((left, right) => right.count - left.count || left.term.localeCompare(right.term));
+  /*
+   * Ties are broken by code point, not by collation.
+   *
+   * `localeCompare` consults the host's default locale, so the same document ranked 汉 above 字 on
+   * a zh-CN machine (pinyin: hàn before zì) and 字 above 汉 on an en-US one, where code-point order
+   * applies. A ranking that quietly depends on the reader's system language is not a ranking; the
+   * regression surfaced as a unit test that passed locally and failed on CI.
+   */
+  ranked.sort(
+    (left, right) =>
+      right.count - left.count ||
+      (left.term < right.term ? -1 : left.term > right.term ? 1 : 0),
+  );
 
   return {
     unit,

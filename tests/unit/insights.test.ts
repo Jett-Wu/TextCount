@@ -244,8 +244,11 @@ describe('frequency', () => {
     expect(report.totalTokens).toBe(4);
     expect(report.distinct).toBe(2);
     expect(report.entries).toEqual([
-      { term: '汉', count: 2 },
+      // Equal counts tie-break by code point (字 U+5B57 before 汉 U+6C49), never by the host's
+      // collation — a zh-CN machine would otherwise order these by pinyin and this test would
+      // pass locally while failing on CI.
       { term: '字', count: 2 },
+      { term: '汉', count: 2 },
     ]);
     expect(report.entries.some((entry) => /[a-z0-9]/i.test(entry.term))).toBe(false);
   });

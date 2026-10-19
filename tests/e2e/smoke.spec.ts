@@ -130,7 +130,17 @@ test.describe('counting rules', () => {
     expect((await headline(page))[0]).toBe('2');
 
     await page.getByRole('button', { name: 'Counting rules' }).click();
-    await page.getByLabel('Count a run of digits as one unit').uncheck();
+    /*
+     * Retried on purpose. Changing a rule re-renders the stats panel, and in a full serial run under
+     * load that render can swallow a click that lands mid-update — Firefox reported "clicking the
+     * checkbox did not change its state" once in roughly a thousand executions, then passed three
+     * times in a row in isolation. The assertion below is unchanged, so a genuinely stuck checkbox
+     * still fails; this only stops a lost click from turning the build red.
+     */
+    const digits = page.getByLabel('Count a run of digits as one unit');
+    await expect(async () => {
+      await digits.uncheck();
+    }).toPass({ timeout: 10_000 });
     expect((await headline(page))[0]).toBe('1');
     // Character counts are rule-independent.
     expect((await headline(page))[1]).toBe('2');
