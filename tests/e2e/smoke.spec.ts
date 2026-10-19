@@ -364,6 +364,17 @@ test.describe('full-width / half-width inspection', () => {
       .evaluate((element) => (element as HTMLTextAreaElement).selectionStart);
     expect(position).toBe(2);
   });
+
+  test('drops the symbol navigator when the document changes', async ({ page }) => {
+    await page.goto('/');
+    await setText(page, '你好。世界。再见。第四句。');
+    await page.locator('#textcount-tab-symbols').click();
+    await page.locator('[data-testid="symbol-group-period"] .chip').first().click();
+    await expect(page.locator('.chip-nav')).toHaveCount(1);
+    await setText(page, 'A different document!');
+    await expect(page.locator('.chip-nav')).toHaveCount(0);
+    await expect(page.locator('.chip--active, .sym--active')).toHaveCount(0);
+  });
 });
 
 test.describe('interface language', () => {
@@ -696,6 +707,11 @@ test.describe('insights', () => {
     await page.goto('/');
     await setText(page, MULTI);
     await page.locator('#textcount-tab-insights').click();
+    // The cloud is the default sub-view now, so ask for the paragraph list explicitly.
+    await page
+      .locator('[data-testid="insights-views"]')
+      .getByRole('button', { name: 'Paragraphs' })
+      .click();
 
     // 4 paragraphs, 2 blank lines: the two empty lines between blocks.
     await expect(page.locator('[data-testid="panel-insights"] .metrics__row').nth(0)).toContainText(
@@ -893,6 +909,24 @@ test.describe('insights', () => {
     await expect(page.locator('[data-testid="insights-engine-note"]')).toBeVisible();
   });
 
+  test('opens on the cloud and orders the sub-views by how often they are used', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    // English on purpose: every engine segments Latin text, while Firefox's Chinese dictionary is
+    // weak enough to leave the cloud empty, which would make this a test of the segmenter.
+    await setText(page, 'alpha bravo charlie delta echo foxtrot golf hotel india juliet');
+    await page.locator('#textcount-tab-insights').click();
+
+    const views = page.locator('[data-testid="insights-views"] .switcher__item');
+    // Language-independent: assert the stable handle, not the translated label.
+    expect(
+      await views.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-view'))),
+    ).toEqual(['cloud', 'frequency', 'paragraphs']);
+    await expect(views.first()).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.cloud')).toBeVisible();
+  });
+
   test('shows an empty state before any text is entered', async ({ page }) => {
     await page.goto('/');
     await page.locator('#textcount-tab-insights').click();
@@ -912,6 +946,10 @@ test.describe('analysis list length', () => {
     const paragraphs = Array.from({ length: 150 }, (_, index) => `Paragraph ${index + 1}.`);
     await setText(page, paragraphs.join('\n\n'));
     await page.locator('#textcount-tab-insights').click();
+    await page
+      .locator('[data-testid="insights-views"]')
+      .getByRole('button', { name: 'Paragraphs' })
+      .click();
 
     await expect(page.locator('.bars__row')).toHaveCount(150);
     // Nothing was held back, so there is nothing to reveal.
@@ -923,6 +961,10 @@ test.describe('analysis list length', () => {
     const paragraphs = Array.from({ length: 400 }, (_, index) => `Paragraph ${index + 1}.`);
     await setText(page, paragraphs.join('\n\n'));
     await page.locator('#textcount-tab-insights').click();
+    await page
+      .locator('[data-testid="insights-views"]')
+      .getByRole('button', { name: 'Paragraphs' })
+      .click();
 
     await expect(page.locator('.bars__row')).toHaveCount(300);
     await page.locator('[data-testid="insights-show-all"]').click();
@@ -968,6 +1010,81 @@ test.describe('word cloud controls', () => {
     await expect(page.locator('.cloud svg')).toBeVisible();
   };
 
+  test('keeps exports disabled until the lazy canvas is ready', async ({ page }) => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    await page.route('**/WordCloud-*.js', async route => { await gate; await route.continue().catch(() => {}); });
+    try {
+      await page.goto('/');
+      await setText(page, MANY_TERMS);
+      await page.locator('#textcount-tab-insights').click();
+      await page.locator('[data-testid="insights-views"] [data-view="cloud"]').click();
+      const buttons = page.locator('[data-testid="cloud-export"] button');
+      await expect(buttons).toHaveCount(2);
+      await expect(buttons.nth(0)).toBeDisabled();
+      await expect(buttons.nth(1)).toBeDisabled();
+      release();
+      await expect(page.locator('.cloud svg')).toBeVisible();
+      await expect(buttons.nth(0)).toBeEnabled();
+      await expect(buttons.nth(1)).toBeEnabled();
+    } finally { release(); }
+  });
+
+  for (const locale of ['zh-CN', 'en', 'ja', 'es', 'fr']) {
+    test(`keeps compact controls accessible and usable with touch (${locale})`, async ({ browser, baseURL }) => {
+      const context = await browser.newContext({ baseURL: baseURL!, locale, hasTouch: true, reducedMotion: 'reduce' });
+      await context.addInitScript(value => localStorage.setItem('textcount.locale', value), locale);
+      const page = await context.newPage();
+      for (const width of [320, 390, 1440]) {
+        await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
+        await page.goto('/');
+        await setText(page, '你好。世界。再见。第四句。');
+        await page.locator('#textcount-tab-symbols').click();
+        await page.locator('[data-testid="symbol-group-period"] .chip').first().click();
+        const nav = page.locator('.chip-nav');
+        await expect(nav).toHaveCount(1);
+        await expect(nav.locator('.chip-nav__position > [aria-hidden]')).toHaveText('1 / 4');
+        const geometry = await nav.evaluate(element => {
+          const active = document.querySelector('.chip--active, .sym--active')!.getBoundingClientRect();
+          const box = element.getBoundingClientRect();
+          return { gap: box.left - active.right, top: box.top - active.top,
+            overflow: document.documentElement.scrollWidth > innerWidth,
+            targets: [...element.querySelectorAll('button')].map(n => [n.getBoundingClientRect().width, n.getBoundingClientRect().height]) };
+        });
+        expect(Math.abs(geometry.gap)).toBeLessThan(1);
+        expect(Math.abs(geometry.top)).toBeLessThan(1);
+        expect(geometry.overflow).toBe(false);
+        expect(geometry.targets.every(([w, h]) => w! >= 44 && h! >= 44)).toBe(true);
+        await nav.locator('button').last().focus();
+        await page.keyboard.press('Enter');
+        await expect(nav.locator('.chip-nav__position')).toHaveAttribute('data-index', '2');
+
+        await setText(page, MANY_TERMS);
+        await page.locator('#textcount-tab-insights').click();
+        await page.locator('[data-testid="insights-views"] [data-view="cloud"]').click();
+        await expect(page.locator('.cloud svg')).toBeVisible();
+        const controls = page.locator('.cloud-controls');
+        const layout = await controls.evaluate(element => ({
+          overflow: document.documentElement.scrollWidth > innerWidth,
+          clipped: [...element.querySelectorAll('button')].some(n => n.scrollWidth > n.clientWidth + 1),
+          targets: [...element.querySelectorAll('button')].map(n => [n.getBoundingClientRect().width, n.getBoundingClientRect().height]),
+          motion: getComputedStyle(element.querySelector('button')!).transitionDuration,
+        }));
+        expect(layout.overflow).toBe(false);
+        expect(layout.clipped).toBe(false);
+        expect(layout.targets.every(([w, h]) => w! >= 44 && h! >= 44)).toBe(true);
+        expect(layout.motion.split(',').every(value => Number.parseFloat(value) < 0.001)).toBe(true);
+        await expect(controls.locator('[aria-pressed="true"]')).toHaveCount(2);
+        await expect(page.locator('[data-testid="cloud-export"] [aria-pressed]')).toHaveCount(0);
+        await page.keyboard.press('Tab');
+        const selected = page.locator('[data-testid="cloud-count"] [aria-pressed="true"]');
+        await selected.focus();
+        expect(await selected.evaluate(n => getComputedStyle(n).outlineStyle)).toBe('solid');
+      }
+      await context.close();
+    });
+  }
+
   test('changes how many words are offered to the layout', async ({ page }) => {
     await openCloud(page);
     const count = page.locator('[data-testid="cloud-count"]');
@@ -979,11 +1096,11 @@ test.describe('word cloud controls', () => {
      * so in the same line. Asserting placed-count growth would test the layout engine's packing,
      * not the control.
      */
-    await count.getByRole('button', { name: '20', exact: true }).click();
-    await expect(placedLine).toHaveAttribute('data-total', '20');
-
-    await count.getByRole('button', { name: '60', exact: true }).click();
-    await expect(placedLine).toHaveAttribute('data-total', '60');
+    for (const option of ['20', '30', '40', '60']) {
+      await count.getByRole('button', { name: option, exact: true }).click();
+      await expect(placedLine).toHaveAttribute('data-total', option);
+      await expect(count.getByRole('button', { name: option, exact: true })).toHaveAttribute('aria-pressed', 'true');
+    }
 
     // Never more words on screen than were offered.
     const placed = Number(await placedLine.getAttribute('data-placed'));
@@ -999,11 +1116,13 @@ test.describe('word cloud controls', () => {
       return Number(box?.split(' ')[3] ?? 0);
     };
 
-    const medium = await heightOf();
+    expect(await heightOf()).toBe(300);
     await size.getByRole('button', { name: 'L', exact: true }).click();
-    await expect.poll(heightOf).toBeGreaterThan(medium);
+    await expect.poll(heightOf).toBe(420);
     await size.getByRole('button', { name: 'S', exact: true }).click();
-    await expect.poll(heightOf).toBeLessThan(medium);
+    await expect.poll(heightOf).toBe(220);
+    await size.getByRole('button', { name: 'M', exact: true }).click();
+    await expect.poll(heightOf).toBe(300);
   });
 
   test('exports the cloud as SVG with the text still as text', async ({ page }) => {

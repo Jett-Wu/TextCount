@@ -74,6 +74,7 @@
    */
   --sidebar-width: clamp(360px, 23vw, 480px);
   --workspace-bar-height: 56px;
+  --touch-target: 44px;
   --col-gap: 24px;
 
   /* Type — one scale, used consistently */

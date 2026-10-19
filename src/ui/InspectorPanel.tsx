@@ -6,7 +6,6 @@
  * because mixing is often correct in mixed Chinese/English text.
  */
 
-import { Fragment } from 'preact';
 import type { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { findTermMatches, revealRange } from '../app/editor';
@@ -14,6 +13,7 @@ import { appStore, runSymbols, useStore, useTranslate } from '../app/state';
 import type { MatchResult } from '../core/search';
 import type { SymbolReport } from '../core/symbols';
 import type { MessageKey } from '../locales';
+import { Icon } from './common';
 
 const SYMBOL_DEBOUNCE_MS = 150;
 
@@ -131,34 +131,34 @@ export function InspectorPanel() {
     setActive({ ...active, index });
   };
 
-  /*
-   * Rendered next to the active chip rather than inside it: a button cannot contain buttons, and
-   * keeping the navigator as a sibling lets it wrap with the chip on narrow panels.
-   */
+  // Sibling buttons share one visual wrapper; nesting them in the locating button is invalid HTML.
   const navigation = (): JSX.Element | null => {
     if (active === null) return null;
     const total = active.matches.positions.length;
     if (total <= 1) return null;
     return (
       <span class="chip-nav">
-        <button type="button" class="btn btn--icon" onClick={() => step(-1)} aria-label={t('search.prev')}>
-          ‹
+        <button type="button" class="chip-nav__button" onClick={() => step(-1)} aria-label={t('search.prev')}>
+          <Icon name="chevron" />
         </button>
         <span
           class="chip-nav__position"
           /* Machine-readable position so tests do not depend on a translated sentence. */
           data-index={active.index + 1}
           data-total={total}
+          role="status"
+          aria-atomic="true"
           title={
             active.matches.truncated
               ? t('search.truncated', { kept: total, total: active.matches.count })
               : ''
           }
         >
-          {t('search.position', { index: active.index + 1, total })}
+          <span aria-hidden="true">{active.index + 1} / {total}</span>
+          <span class="chip-nav__announcement">{t('search.position', { index: active.index + 1, total })}</span>
         </span>
-        <button type="button" class="btn btn--icon" onClick={() => step(1)} aria-label={t('search.next')}>
-          ›
+        <button type="button" class="chip-nav__button" onClick={() => step(1)} aria-label={t('search.next')}>
+          <Icon name="chevron" />
         </button>
       </span>
     );
@@ -208,10 +208,11 @@ export function InspectorPanel() {
                         const chipKey = `group:${group.id}:${member.codePoint}`;
                         const isActive = active?.key === chipKey;
                         return (
-                          <Fragment key={member.codePoint}>
+                          <span key={member.codePoint} class={isActive ? 'symbol-choice symbol-choice--active' : 'symbol-choice'}>
                             <button
                               type="button"
                               class={isActive ? 'chip chip--active' : 'chip'}
+                              aria-pressed={isActive}
                               title={`${member.codePoint} · ${t('symbols.locate')}`}
                               onClick={() => locate(chipKey, member.char)}
                             >
@@ -222,7 +223,7 @@ export function InspectorPanel() {
                               <span class="chip__count">{member.count}</span>
                             </button>
                             {isActive ? navigation() : null}
-                          </Fragment>
+                          </span>
                         );
                       })}
                   </div>
@@ -249,10 +250,11 @@ export function InspectorPanel() {
                 const chipKey = `cat:${category.id}:${entry.codePoint}`;
                 const isActive = active?.key === chipKey;
                 return (
-                  <Fragment key={entry.codePoint}>
+                  <span key={entry.codePoint} class={isActive ? 'symbol-choice symbol-choice--active' : 'symbol-choice'}>
                     <button
                       type="button"
                       class={isActive ? 'sym sym--active' : 'sym'}
+                      aria-pressed={isActive}
                       title={`${entry.codePoint} · ${t('symbols.locate')}`}
                       onClick={() => locate(chipKey, entry.char)}
                     >
@@ -261,7 +263,7 @@ export function InspectorPanel() {
                       <span class="sym__count">{entry.count}</span>
                     </button>
                     {isActive ? navigation() : null}
-                  </Fragment>
+                  </span>
                 );
               })}
             </div>

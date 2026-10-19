@@ -96,17 +96,6 @@ select {
   vertical-align: middle;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
 /* ------------------------------------------------------------------ shell */
 
 /*
@@ -1256,28 +1245,75 @@ select {
   background: var(--accent-wash);
 }
 
-/* The chip whose occurrences are being walked through, and its navigator. */
-.chip--active,
-.sym--active {
-  border-color: var(--accent);
-  background: var(--accent-wash);
+.symbol-choice {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  max-width: 100%;
+  border-radius: var(--radius-sm);
 }
 
-/*
- * Sits beside the active chip inside the wrapping flex row, not inside the button: a button cannot
- * contain buttons, and as a sibling it wraps to the next line with its chip on a narrow panel.
- */
+.symbol-choice--active {
+  border: 1px solid var(--border-strong);
+  background: var(--accent-soft);
+}
+
+.chip--active,
+.sym--active {
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: var(--accent-strong);
+}
+
+.symbol-choice--active > button:hover { background: var(--accent-wash); }
+
 .chip-nav {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
+  border-left: 1px solid var(--border-strong);
+  padding-inline: var(--space-1);
+}
+
+.chip-nav__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-width: var(--space-6);
+  min-height: var(--space-6);
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color var(--dur-tap) var(--ease), color var(--dur-tap) var(--ease);
+}
+
+.chip-nav__button:first-child .icon { transform: rotate(90deg); }
+.chip-nav__button:last-child .icon { transform: rotate(-90deg); }
+.chip-nav__button:hover { background: var(--surface-hover); color: var(--text); }
+.symbol-choice > button:focus-visible,
+.chip-nav__button:focus-visible { outline-offset: calc(-1 * var(--space-1)); }
+
+.chip-nav__announcement {
+  position: absolute;
+  inline-size: var(--space-1);
+  block-size: var(--space-1);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .chip-nav__position {
   font-size: var(--size-meta);
-  color: var(--text-muted);
+  color: var(--text);
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  min-width: var(--space-6);
+  text-align: center;
 }
 
 .chip__char,
@@ -1411,44 +1447,45 @@ select {
   text-align: right;
 }
 
-/*
- * Cloud controls: how many words, how big the canvas, and export. Kept to one small wrapping row
- * so the canvas stays the thing the eye lands on; a settings panel here would invert that.
- */
 .cloud-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) var(--space-4);
-  padding-bottom: var(--space-2);
+  display: grid;
+  gap: var(--space-2);
+  padding-bottom: var(--space-4);
 }
 
 .cloud-control {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  min-width: 0;
 }
 
 .cloud-control__label {
+  flex: 0 0 calc(var(--space-6) * 2);
   font-size: var(--size-meta);
   color: var(--text-muted);
 }
 
 .cloud-control__options {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 2px;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
 }
 
 .cloud-option {
-  min-width: 30px;
-  min-height: 28px;
-  padding: 3px var(--space-2);
-  border: 1px solid transparent;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: var(--space-6);
+  padding: var(--space-1);
+  border: 0;
   border-radius: var(--radius-xs);
   background: transparent;
   color: var(--text-muted);
-  font-size: var(--size-meta);
+  font-size: var(--size-control);
   font-variant-numeric: tabular-nums;
   cursor: pointer;
   transition:
@@ -1456,18 +1493,48 @@ select {
     color var(--dur-tap) var(--ease);
 }
 
-.cloud-option:hover:not(:disabled) {
+.cloud-option:not(.cloud-option--on):hover {
   background: var(--surface-hover);
   color: var(--text);
 }
 
 .cloud-option--on {
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  font-weight: 500;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
 }
 
-.cloud-option:disabled {
+.cloud-control--export {
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+}
+
+.cloud-export-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.cloud-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: var(--space-6);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: var(--size-meta);
+  cursor: pointer;
+  transition: background-color var(--dur-tap) var(--ease), border-color var(--dur-tap) var(--ease);
+}
+
+.cloud-download:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--accent); }
+
+.cloud-download:disabled {
   opacity: 0.4;
   cursor: default;
 }
@@ -1818,6 +1885,12 @@ select {
  * first. Targets grow by real padding, never by pseudo-elements that overlap their neighbour.
  */
 @media (pointer: coarse) {
+  .chip-nav__button,
+  .cloud-option,
+  .cloud-download {
+    min-width: var(--touch-target);
+    min-height: var(--touch-target);
+  }
   :root { --workspace-bar-height: 64px; }
   .header-button,
   .header-link {
@@ -1852,6 +1925,13 @@ select {
 }
 
 @media (max-width: 380px) {
+  .cloud-control:not(.cloud-control--export) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-1);
+  }
+
+  .cloud-control:not(.cloud-control--export) .cloud-control__label { flex-basis: auto; }
   /*
    * Four tool tabs in 276px leaves 69px each; `Symbols` needed 72px and was being clipped to
    * `Symbol…`. Trimmed here rather than shortened further, so the label stays the accurate one.
@@ -1899,5 +1979,16 @@ select {
 
   .panel-body {
     padding: var(--space-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

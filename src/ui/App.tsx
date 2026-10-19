@@ -177,7 +177,7 @@ function Tools() {
   const indicator = useSelectionIndicator(active);
   const panel = useRef<HTMLDivElement>(null);
   const searchSession = useRef<SearchSession>({ terms: [], draft: '', caseSensitive: true, activeTerm: 0, activeMatch: 0 });
-  const insightSession = useRef<InsightSession>({ view: 'paragraphs', order: 'document', unit: 'word', filterStopWords: true });
+  const insightSession = useRef<InsightSession>({ view: 'cloud', order: 'document', unit: 'word', filterStopWords: true });
   useLayoutEffect(() => {
     if (panel.current) panel.current.scrollTop = 0;
   }, [active]);

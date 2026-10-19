@@ -47,7 +47,12 @@ type InsightView = 'paragraphs' | 'frequency' | 'cloud';
 type ParagraphOrder = 'document' | 'length';
 type Status = 'idle' | 'running' | 'done';
 
-const VIEWS: readonly InsightView[] = ['paragraphs', 'frequency', 'cloud'];
+/**
+ * Ordered by how often the view is actually opened, and the first entry is the default. The cloud
+ * gives the instant "what is this text about" answer, the ranking is the drill-down, and the
+ * paragraph list is for editing a specific paragraph — which is why it moved last.
+ */
+const VIEWS: readonly InsightView[] = ['cloud', 'frequency', 'paragraphs'];
 const ORDER: readonly ParagraphOrder[] = ['document', 'length'];
 const UNITS: readonly FrequencyUnit[] = ['word', 'character'];
 
@@ -136,6 +141,8 @@ export function InsightsPanel({ session }: { session: { current: InsightSession 
             type="button"
             class={id === view ? 'switcher__item switcher__item--on' : 'switcher__item'}
             aria-pressed={id === view}
+            /* Language-independent handle: the visible label is translated, the tests are not. */
+            data-view={id}
             onClick={() => setView(id)}
           >
             {t(VIEW_LABEL[id])}
@@ -468,9 +475,8 @@ function CloudView({
   return (
     <>
       {/*
-       * The controls sit above the canvas because they change what is drawn. Word count and size
-       * are not independent: raising the count on a small canvas mostly produces dropped words,
-       * and the "placed" line below reports that honestly rather than silently shrinking type.
+       * Selection tracks and one-off downloads have different visual treatments so an export
+       * never looks like another persistent setting. Both still yield to the canvas below.
        */}
       <div class="cloud-controls">
         <div class="cloud-control" role="group" aria-label={t('insights.cloud.count')} data-testid="cloud-count">
@@ -507,25 +513,31 @@ function CloudView({
           </div>
         </div>
 
-        <div class="cloud-control" role="group" aria-label={t('insights.cloud.export')} data-testid="cloud-export">
+        <div class="cloud-control cloud-control--export" role="group" aria-label={t('insights.cloud.export')} data-testid="cloud-export">
           <span class="cloud-control__label">{t('insights.cloud.export')}</span>
-          <div class="cloud-control__options">
+          <div class="cloud-export-actions">
             <button
               type="button"
-              class="cloud-option"
+              class="cloud-download"
               disabled={!ready || exporting}
               title={t('insights.cloud.exportPngHint')}
               onClick={() => download('png')}
             >
+              <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M10 3v10m-4-4 4 4 4-4M4 14v3h12v-3" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
               {t('insights.cloud.exportPng')}
             </button>
             <button
               type="button"
-              class="cloud-option"
+              class="cloud-download"
               disabled={!ready}
               title={t('insights.cloud.exportSvgHint')}
               onClick={() => download('svg')}
             >
+              <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M10 3v10m-4-4 4 4 4-4M4 14v3h12v-3" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
               {t('insights.cloud.exportSvg')}
             </button>
           </div>
