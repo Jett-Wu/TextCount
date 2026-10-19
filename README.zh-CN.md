@@ -44,13 +44,13 @@
 ```bash
 npm ci
 npm run dev        # 启动 Vite 开发服务器
-npm run check      # 类型检查 + 单元测试 + 构建
-npm run test:e2e   # 针对构建产物的 Playwright 测试
+npm run build      # 类型检查 + 构建到 dist/
+npm run preview    # 本地预览构建产物
 ```
 
-Node 24。端到端默认只跑 Chromium，`E2E_ALL_BROWSERS=1` 追加 Firefox 与 WebKit。
-测试跑在构建产物上、使用 `/TextCount/` 子路径 —— 与 GitHub Pages 线上路径一致，
-因为 base 路径和 Worker 地址恰好是开发服务器会掩盖的两个问题。
+Node 24。构建产物发布在 `/TextCount/` 子路径下，与 GitHub Pages 的路径一致，所以
+`npm run preview` 的地址是 <http://127.0.0.1:4173/TextCount/>。这个路径很关键：Vite 会给每个
+资源 URL 加上它，一旦名称或大小写不匹配，部署后整个包都会 404。
 
 ### 几条设计说明
 

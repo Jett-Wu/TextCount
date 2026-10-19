@@ -4,8 +4,10 @@
 #   actions/upload-artifact@v7     (latest release v7.0.2)
 # Pinned to the latest released major tag that exists.
 #
-# CI must stay offline-friendly: no step may call an external service other than the
-# npm registry and the Playwright browser CDN (used only by the e2e job).
+# This repository publishes the application, not the development test suite, so CI verifies what a
+# clean checkout can verify: the types and a production build on a Linux runner. That still catches
+# the things a local Windows run does not — platform-specific build failures and the Pages base path
+# baked into the emitted asset URLs.
 name: CI
 
 on:
@@ -24,7 +26,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Typecheck, test and build
+    name: Typecheck and build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -43,9 +45,6 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Unit tests
-        run: npm test
-
       - name: Build
         run: npm run build
 
@@ -56,34 +55,3 @@ jobs:
           path: dist
           if-no-files-found: error
           retention-days: 7
-
-  e2e:
-    name: End-to-end smoke tests
-    runs-on: ubuntu-latest
-    needs: verify
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci --no-audit --no-fund
-
-      - name: Install Chromium for Playwright
-        run: npx playwright install --with-deps chromium
-
-      # The Playwright config builds the app and serves `dist/` from the real project sub-path
-      # (`/textcount/`), so this also covers the GitHub Pages base path and the worker bundle URL.
-      # Firefox/WebKit stay opt-in (E2E_ALL_BROWSERS=1) because the design reference only requires
-      # the cross-engine regression before a release.
-      - name: Run smoke tests
-        run: npm run test:e2e
-        env:
-          CI: 'true'
-

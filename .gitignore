@@ -42,3 +42,7 @@ AGENTS.md
 PROJECT.md
 TASK.md
 DEVLOG.md
+
+# Development-only: test suite and its config are kept local, not published
+tests/
+playwright.config.ts

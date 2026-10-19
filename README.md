@@ -50,13 +50,13 @@ only the request for static files.
 ```bash
 npm ci
 npm run dev        # Vite dev server
-npm run check      # typecheck + unit tests + build
-npm run test:e2e   # Playwright against the production build
+npm run build      # typecheck + production build into dist/
+npm run preview    # serve the built dist/ locally
 ```
 
-Node 24. Chromium is the default end-to-end engine; `E2E_ALL_BROWSERS=1` adds Firefox and WebKit.
-The suite runs against the built app under `/TextCount/` — the same sub-path GitHub Pages serves —
-because the base path and the worker URL are exactly what a dev-server run hides.
+Node 24. The build is emitted under `/TextCount/` to match the GitHub Pages sub-path, so
+`npm run preview` serves <http://127.0.0.1:4173/TextCount/>. That path is load-bearing: Vite prefixes
+every asset URL with it, and a mismatch 404s the whole bundle once deployed.
 
 ### A few design notes
 
