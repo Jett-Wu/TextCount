@@ -1933,12 +1933,14 @@ select {
 
   .cloud-control:not(.cloud-control--export) .cloud-control__label { flex-basis: auto; }
   /*
-   * Four tool tabs in 276px leaves 69px each; `Symbols` needed 72px and was being clipped to
-   * `Symbol…`. Trimmed here rather than shortened further, so the label stays the accurate one.
+   * Four tool tabs in about 59px each. `Symbols` needed 72px untrimmed, then 63px after the first
+   * trim — which passed on the Windows font stack and still clipped on the Linux one CI uses. Micro
+   * type plus 2px side padding buys roughly 8px of headroom, enough for both stacks, and keeps the
+   * label rather than shortening it to something less accurate.
    */
   .switcher__item {
-    padding: 6px 4px;
-    font-size: var(--size-meta);
+    padding: 6px 2px;
+    font-size: var(--size-micro);
   }
 
   /*
