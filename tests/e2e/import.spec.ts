@@ -100,7 +100,7 @@ test.describe('local document import', () => {
       await expect(page.locator('.stats__value').nth(1)).toHaveText(new Intl.NumberFormat('en-US').format([...new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(expected)].length));
       expect(errors).toEqual([]);
       // WebKit exposes File.arrayBuffer() as a local blob read; it is not an HTTP upload.
-      expect(requests.filter(r => !r.url.startsWith('http://127.0.0.1:4173/textcount/')
+      expect(requests.filter(r => !r.url.startsWith('http://127.0.0.1:4173/TextCount/')
         && !(r.url.startsWith('blob:') && new URL(r.url).origin === 'http://127.0.0.1:4173'))).toEqual([]);
       expect(requests.every(r => r.method === 'GET' && r.body === null)).toBe(true);
       expect(await page.evaluate(() => Object.values(localStorage).some(value => value.includes('Hello PDF') || value.includes('TextCount 2026')))).toBe(false);

@@ -4,7 +4,7 @@ import { defineConfig, devices } from '@playwright/test';
  * End-to-end configuration.
  *
  * The suite runs against the **production build** served from the real sub-path
- * (`/textcount/`), because the two things most likely to break in this project are exactly the
+ * (`/TextCount/`), because the two things most likely to break in this project are exactly the
  * ones a `vite dev` run would hide: the GitHub Pages `base` path and the worker bundle URL.
  *
  * Only Chromium is installed by default. `npx playwright install` followed by
@@ -14,7 +14,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 
 const PORT = 4173;
-const BASE_URL = `http://127.0.0.1:${PORT}/textcount/`;
+const BASE_URL = `http://127.0.0.1:${PORT}/TextCount/`;
 
 const crossBrowser = process.env['E2E_ALL_BROWSERS'] === '1';
 const onCi = process.env['CI'] !== undefined;

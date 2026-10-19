@@ -1,7 +1,7 @@
 /**
  * End-to-end smoke tests for the P0 surface.
  *
- * These run against the built app under `/textcount/`, so they cover the deployment shape as
+ * These run against the built app under `/TextCount/`, so they cover the deployment shape as
  * well as the behaviour. The count values asserted here are the same ones pinned by the unit
  * suite — if a rule changes, both suites must be updated together.
  */
@@ -69,7 +69,7 @@ test.describe('shell and privacy boundary', () => {
         .filter((name) => /\.(js|css)$/.test(name)),
     );
     expect(assetUrls.length).toBeGreaterThan(0);
-    for (const url of assetUrls) expect(url).toContain('/textcount/assets/');
+    for (const url of assetUrls) expect(url).toContain('/TextCount/assets/');
   });
 
   test('starts at zero and reports the documented example exactly', async ({ page }) => {
@@ -423,7 +423,8 @@ test.describe('interface language', () => {
       await expect(page.locator(EDITOR)).toHaveValue('你好 AI 2026');
     }
     const link = page.getByRole('link', { name: 'GitHub' });
-    await expect(link).toHaveAttribute('href', 'https://github.com/Jett-Wu');
+    // Points at this project, not the author's profile page.
+    await expect(link).toHaveAttribute('href', 'https://github.com/Jett-Wu/TextCount');
     await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   });
 

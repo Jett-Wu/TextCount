@@ -121,8 +121,8 @@ function TopBar() {
             <Icon name={theme === 'system' ? 'system' : theme === 'dark' ? 'moon' : 'sun'} />
           </span>
         </button>
-        <a class="header-link" href="https://github.com/Jett-Wu" target="_blank"
-          rel="noopener noreferrer" aria-label="GitHub" title="GitHub · Jett-Wu">
+        <a class="header-link" href="https://github.com/Jett-Wu/TextCount" target="_blank"
+          rel="noopener noreferrer" aria-label="GitHub" title="GitHub · TextCount">
           <Icon name="github" />
         </a>
       </div>

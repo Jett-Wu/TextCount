@@ -9,13 +9,15 @@ import type { Plugin } from 'vite';
 /**
  * `BASE_PATH` must match the GitHub Pages layout.
  *
- * - Project site (`https://<user>.github.io/textcount/`) -> `/textcount/` (the default).
+ * - Project site (`https://<user>.github.io/TextCount/`) -> `/TextCount/` (the default). The
+ *   capital T is load-bearing: Pages serves project sites under the repository name as stored, so
+ *   the path is case-sensitive and `/textcount/` would 404 every asset.
  * - User/organisation root site (`https://<user>.github.io/`) or a custom domain -> `/`.
  *
  * Every generated asset URL, the lazily imported modules and the worker entry are emitted
  * relative to this base, so it has to be right before the first deploy.
  */
-const base = process.env.BASE_PATH ?? '/textcount/';
+const base = process.env.BASE_PATH ?? '/TextCount/';
 
 /**
  * `cfb` is CommonJS and guards its export with `typeof require`. A bundled browser worker has no

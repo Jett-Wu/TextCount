@@ -6,8 +6,10 @@
 #   actions/deploy-pages@v5          (latest release v5.0.1)
 # Pinned to the latest released major tag that exists.
 #
-# base: '/textcount/' in vite.config.ts must match the repository name, because this is a
-# GitHub Pages PROJECT site served from https://<USERNAME>.github.io/textcount/.
+# base: '/TextCount/' in vite.config.ts must match the repository name exactly, because this is a
+# GitHub Pages PROJECT site served from https://<USERNAME>.github.io/TextCount/. The capital T is
+# load-bearing: the path follows the repository name as stored, and Vite prefixes every asset URL
+# with it, so a casing mismatch 404s the whole bundle.
 # If the project ever moves to a custom domain, or becomes a user/organisation root site
 # (https://<USERNAME>.github.io/), that base must be changed to '/'.
 name: Deploy to GitHub Pages
