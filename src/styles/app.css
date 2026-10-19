@@ -1813,6 +1813,25 @@ select {
     --gutter: 16px;
   }
 
+  /*
+   * Tool tabs stop being equal-width columns and keep their natural width; the row wraps when the
+   * labels no longer fit.
+   *
+   * Equal columns plus `text-overflow: ellipsis` clips a label the moment the font stack is wider
+   * than the one it was tuned against: `Symbols` needed 63px where the column gave 59px, which
+   * passed on Windows and failed on the Linux fonts CI uses — first at 320px, then at 390px after
+   * the first trim. Wrapping is font-independent: either every label has room, or the row takes a
+   * second line. No label is ever abbreviated.
+   */
+  .tools__head .switcher {
+    flex-wrap: wrap;
+  }
+
+  .tools__head .switcher__item {
+    flex: 1 1 auto;
+    min-width: max-content;
+  }
+
   .topbar {
     flex-wrap: nowrap;
     min-height: 64px;
