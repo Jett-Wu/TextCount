@@ -481,6 +481,25 @@ select {
   transition: background-color var(--dur-tab) var(--ease);
 }
 
+/*
+ * The tool tabs must never abbreviate a label.
+ *
+ * As equal-width columns with `text-overflow: ellipsis`, any font stack wider than the one they
+ * were tuned against clipped: `Symbols` needed 63px where the column gave 59px on the fonts CI
+ * runs, and the same happened at 320px, 390px and 640px — the last of those because the clipping
+ * follows the *panel* width, not the viewport, so no media query could have contained it.
+ *
+ * A tab is now never narrower than its label, and the row wraps once the labels stop fitting.
+ * Equal columns are preserved wherever they fit, which is every desktop width.
+ */
+.tools__head .switcher {
+  flex-wrap: wrap;
+}
+
+.tools__head .switcher__item {
+  min-width: max-content;
+}
+
 .switcher__item {
   flex: 1;
   min-width: 0;
@@ -1813,25 +1832,6 @@ select {
     --gutter: 16px;
   }
 
-  /*
-   * Tool tabs stop being equal-width columns and keep their natural width; the row wraps when the
-   * labels no longer fit.
-   *
-   * Equal columns plus `text-overflow: ellipsis` clips a label the moment the font stack is wider
-   * than the one it was tuned against: `Symbols` needed 63px where the column gave 59px, which
-   * passed on Windows and failed on the Linux fonts CI uses — first at 320px, then at 390px after
-   * the first trim. Wrapping is font-independent: either every label has room, or the row takes a
-   * second line. No label is ever abbreviated.
-   */
-  .tools__head .switcher {
-    flex-wrap: wrap;
-  }
-
-  .tools__head .switcher__item {
-    flex: 1 1 auto;
-    min-width: max-content;
-  }
-
   .topbar {
     flex-wrap: nowrap;
     min-height: 64px;
@@ -1952,14 +1952,13 @@ select {
 
   .cloud-control:not(.cloud-control--export) .cloud-control__label { flex-basis: auto; }
   /*
-   * Four tool tabs in about 59px each. `Symbols` needed 72px untrimmed, then 63px after the first
-   * trim — which passed on the Windows font stack and still clipped on the Linux one CI uses. Micro
-   * type plus 2px side padding buys roughly 8px of headroom, enough for both stacks, and keeps the
-   * label rather than shortening it to something less accurate.
+   * Four tool tabs share the row. `Symbols` needed 72px untrimmed; trimming here keeps them on one
+   * row at the narrowest phones, where the wrap rule below would otherwise push a tab onto a
+   * second line.
    */
   .switcher__item {
-    padding: 6px 2px;
-    font-size: var(--size-micro);
+    padding: 6px 4px;
+    font-size: var(--size-meta);
   }
 
   /*
