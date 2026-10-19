@@ -901,6 +901,55 @@ test.describe('insights', () => {
   });
 });
 
+test.describe('analysis list length', () => {
+  /*
+   * The panel used to stop at 60 paragraphs and 40 terms regardless of how much there was, so an
+   * ordinary 120-paragraph report was cut in half with no way to see the rest. Everything loaded
+   * is now rendered; only very long lists keep a first page and an explicit "show all".
+   */
+  test('shows every paragraph of an ordinary document', async ({ page }) => {
+    await page.goto('/');
+    const paragraphs = Array.from({ length: 150 }, (_, index) => `Paragraph ${index + 1}.`);
+    await setText(page, paragraphs.join('\n\n'));
+    await page.locator('#textcount-tab-insights').click();
+
+    await expect(page.locator('.bars__row')).toHaveCount(150);
+    // Nothing was held back, so there is nothing to reveal.
+    await expect(page.locator('[data-testid="insights-show-all"]')).toHaveCount(0);
+  });
+
+  test('can reveal every paragraph of a very long document', async ({ page }) => {
+    await page.goto('/');
+    const paragraphs = Array.from({ length: 400 }, (_, index) => `Paragraph ${index + 1}.`);
+    await setText(page, paragraphs.join('\n\n'));
+    await page.locator('#textcount-tab-insights').click();
+
+    await expect(page.locator('.bars__row')).toHaveCount(300);
+    await page.locator('[data-testid="insights-show-all"]').click();
+    await expect(page.locator('.bars__row')).toHaveCount(400);
+  });
+
+  test('can reveal every ranked term, not just the first page', async ({ page }) => {
+    await page.goto('/');
+    // 350 distinct English terms, each appearing once.
+    const terms = Array.from({ length: 350 }, (_, index) => `term${index}`);
+    await setText(page, terms.join(' '));
+    await page.locator('#textcount-tab-insights').click();
+    await page
+      .locator('[data-testid="insights-views"]')
+      .getByRole('button', { name: 'Frequency' })
+      .click();
+
+    await expect(page.locator('.bars__row')).toHaveCount(300);
+    await page.locator('[data-testid="insights-show-all"]').click();
+    await expect(page.locator('.bars__row')).toHaveCount(350);
+    // Every term from the ranking is reachable, not only the first page. The order is by count
+    // then term, so this is an arbitrary member rather than the last one.
+    await expect(page.locator('.bars__term').filter({ hasText: /^term349$/ })).toHaveCount(1);
+    await expect(page.locator('.bars__index').last()).toHaveText('350');
+  });
+});
+
 test.describe('word cloud controls', () => {
   /** 70 distinct English terms, enough that the count control has something to choose between. */
   const MANY_TERMS = Array.from(

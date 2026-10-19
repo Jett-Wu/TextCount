@@ -22,9 +22,14 @@ import type { CloudWord } from './WordCloud';
 import { useSelectionIndicator } from './common';
 
 const ANALYSIS_DEBOUNCE_MS = 200;
-/** Rows rendered at once. Far more than this and the panel becomes a scroll marathon. */
-const PARAGRAPH_ROWS = 60;
-const FREQUENCY_ROWS = 40;
+/**
+ * Rows painted before an explicit "show all". This is not a data limit — the whole list is in
+ * memory and one click renders it. It exists because a book-length document can hold thousands of
+ * paragraphs, and painting all of them on every keystroke-triggered re-analysis would cost more
+ * than it is worth. It was 60 / 40, which cut ordinary reports off mid-list, which is the actual
+ * complaint this threshold fixes: normal documents now show everything with no button at all.
+ */
+const LIST_PAGE = 300;
 /**
  * How many terms go into the cloud. The design reference allows 30–60; 20 is added because a
  * smaller cloud is easier to read at a glance, and the point of the higher values is to dig, not to
@@ -182,6 +187,7 @@ function ParagraphView({
 }) {
   const t = useTranslate();
   const { paragraphs, count, average, longest, blankLines, truncated } = report.paragraphs;
+  const [expanded, setExpanded] = useState(false);
 
   const rows = useMemo(
     () =>
@@ -190,7 +196,7 @@ function ParagraphView({
         : paragraphs,
     [paragraphs, order],
   );
-  const shown = rows.slice(0, PARAGRAPH_ROWS);
+  const shown = expanded ? rows : rows.slice(0, LIST_PAGE);
   const scale = Math.max(1, longest);
 
   return (
@@ -233,6 +239,21 @@ function ParagraphView({
         ))}
       </div>
 
+      {/*
+        Above the list, not below it: a "show all" button at the end of 300 rendered rows means
+        scrolling 300 rows just to discover the rest exists, which is the complaint this fixes.
+      */}
+      {!expanded && rows.length > LIST_PAGE ? (
+        <button
+          type="button"
+          class="btn btn--quiet"
+          data-testid="insights-show-all"
+          onClick={() => setExpanded(true)}
+        >
+          {t('insights.paragraphs.showAll', { total: rows.length })}
+        </button>
+      ) : null}
+
       <ul class="bars">
         {shown.map((paragraph) => (
           <li key={paragraph.index}>
@@ -255,9 +276,9 @@ function ParagraphView({
         ))}
       </ul>
 
-      {truncated || count > PARAGRAPH_ROWS ? (
+      {truncated ? (
         <p class="hint">
-          {t('insights.paragraphs.capped', { shown: Math.min(count, PARAGRAPH_ROWS), total: count })}
+          {t('insights.paragraphs.capped', { shown: rows.length, total: count })}
         </p>
       ) : null}
     </>
@@ -279,7 +300,8 @@ function FrequencyView({
 }) {
   const t = useTranslate();
   const { entries, distinct, totalTokens, truncated, degraded } = report.frequency;
-  const shown = entries.slice(0, FREQUENCY_ROWS);
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? entries : entries.slice(0, LIST_PAGE);
   const top = entries[0]?.count ?? 1;
 
   return (
@@ -331,6 +353,17 @@ function FrequencyView({
         {t('insights.frequency.summary', { tokens: totalTokens, distinct })}
       </p>
 
+      {!expanded && entries.length > LIST_PAGE ? (
+        <button
+          type="button"
+          class="btn btn--quiet"
+          data-testid="insights-show-all"
+          onClick={() => setExpanded(true)}
+        >
+          {t('insights.frequency.showAll', { total: entries.length })}
+        </button>
+      ) : null}
+
       <ul class="bars">
         {shown.map((entry, rank) => (
           <li key={entry.term}>
@@ -354,12 +387,9 @@ function FrequencyView({
         ))}
       </ul>
 
-      {truncated || distinct > FREQUENCY_ROWS ? (
+      {truncated ? (
         <p class="hint">
-          {t('insights.frequency.capped', {
-            shown: Math.min(entries.length, FREQUENCY_ROWS),
-            distinct,
-          })}
+          {t('insights.frequency.capped', { shown: entries.length, distinct })}
         </p>
       ) : null}
     </>

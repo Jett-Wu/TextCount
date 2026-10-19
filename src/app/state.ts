@@ -431,8 +431,15 @@ export interface InsightsResult {
   frequency: FrequencyReport;
 }
 
-/** Terms rendered in the ranking and offered to the cloud. Bounded on purpose. */
-export const MAX_FREQUENCY_ENTRIES = 120;
+/**
+ * How many ranked terms cross from the worker into the panel.
+ *
+ * The ranking itself is always computed over every distinct term; this only bounds the transfer.
+ * It was 120, which cut real documents off well before the reader ran out of interest — a report
+ * with 500 distinct terms showed a quarter of them. 1000 covers essentially every article and
+ * report while keeping the payload around 25 kB.
+ */
+export const MAX_FREQUENCY_ENTRIES = 1000;
 
 /**
  * P1 analysis: paragraph distribution and word frequency. Same contract as `runFind` and
