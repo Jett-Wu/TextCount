@@ -70,8 +70,6 @@ export const zhCN = {
   'insights.frequency.unit.word': '词语',
   'insights.frequency.unit.character': '单字',
   'insights.frequency.filter': '过滤常见虚词',
-  'insights.frequency.engineNote':
-    '分词因浏览器而异；仅保留至少两个字符的词条。',
   'insights.frequency.characterNote': '单字模式仅统计汉字与假名。',
   'insights.frequency.degraded':
     '当前浏览器没有提供中文词典分词，词语结果不可靠（它会把「工具」拆成两个字，又把不相邻的字并成一个词）。建议切换到「单字」查看。',
@@ -90,7 +88,6 @@ export const zhCN = {
   'insights.cloud.exportPngHint': '下载 PNG（长边 3000 像素，约 300 DPI，可直接印刷）',
   'insights.cloud.exportSvgHint': '下载矢量图（文字仍是文字，放大不糊）',
   'insights.cloud.exportFailed': '导出失败，请重试。',
-  'insights.cloud.note': '字号表示频次，点击定位原文。',
 
   'stats.summary': '统计概览',
   'stats.metric.han': '汉字',
@@ -146,7 +143,6 @@ export const zhCN = {
   'search.add': '添加',
   'search.caseSensitive': '区分大小写',
   'search.hint': '按原文精确匹配，不会把 , 和 ，当作同一个字符。',
-  'search.overlapHint': '采用不重叠匹配：在 aaaa 中查找 aa 为 2 处。',
   'search.empty': '可同时查找多个词语',
   'search.running': '查找中…',
   'search.remove': '移除',
@@ -170,8 +166,6 @@ export const zhCN = {
   'symbols.singleBadge': '只有一种形式',
   'symbols.distinct': '{n} 种',
   'symbols.locate': '定位',
-  'symbols.note':
-    '多种形式不代表错误。',
   'symbols.total': '符号合计',
   'symbols.category.ascii': 'ASCII 半角标点',
   'symbols.category.fullwidth': '全角兼容标点',

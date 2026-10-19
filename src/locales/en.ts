@@ -77,8 +77,6 @@ export const en: Messages = {
   'insights.frequency.unit.word': 'Words',
   'insights.frequency.unit.character': 'Characters',
   'insights.frequency.filter': 'Filter common function words',
-  'insights.frequency.engineNote':
-    'Segmentation varies by browser; terms need at least two characters.',
   'insights.frequency.characterNote':
     'Characters mode counts Han and kana only.',
   'insights.frequency.degraded':
@@ -98,8 +96,6 @@ export const en: Messages = {
   'insights.cloud.exportPngHint': 'Download PNG (3000px long edge, about 300 DPI, print-ready)',
   'insights.cloud.exportSvgHint': 'Download vector (text stays text, sharp at any size)',
   'insights.cloud.exportFailed': 'Export failed. Please try again.',
-  'insights.cloud.note':
-    'Size shows frequency. Click to locate.',
 
   'stats.summary': 'Summary',
   'stats.metric.han': 'Han characters',
@@ -157,7 +153,6 @@ export const en: Messages = {
   'search.add': 'Add',
   'search.caseSensitive': 'Match case',
   'search.hint': 'Matched literally against the original text: "," never matches "，".',
-  'search.overlapHint': 'Non-overlapping: "aa" occurs twice in "aaaa".',
   'search.empty': 'Find several terms at once',
   'search.running': 'Searching…',
   'search.remove': 'Remove',
@@ -181,8 +176,6 @@ export const en: Messages = {
   'symbols.singleBadge': 'One form only',
   'symbols.distinct': '{n} kinds',
   'symbols.locate': 'Locate',
-  'symbols.note':
-    'Mixed forms are not necessarily errors.',
   'symbols.total': 'Total marks',
   'symbols.category.ascii': 'ASCII punctuation',
   'symbols.category.fullwidth': 'Full-width punctuation',

@@ -889,24 +889,10 @@ test.describe('insights', () => {
       .locator('[data-testid="insights-views"]')
       .getByRole('button', { name: 'Frequency' })
       .click();
-    await expect(page.locator('[data-testid="insights-engine-note"]')).toBeVisible();
+    await expect(page.locator('[data-testid="insights-summary"]')).toBeVisible();
 
     // `degraded` keeps its narrow meaning, so it must not fire merely because engines differ.
     await expect(page.locator('[data-testid="insights-degraded"]')).toHaveCount(0);
-  });
-
-  test('carries the segmentation caveat into the cloud', async ({ page }) => {
-    // The cloud is where a wrong word list looks most convincing. English is used because it
-    // segments everywhere, so this stays a test of the caveat and not of the segmenter.
-    await page.goto('/');
-    await setText(page, 'the cat sat on the mat, the cat sat.');
-    await page.locator('#textcount-tab-insights').click();
-    await page
-      .locator('[data-testid="insights-views"]')
-      .getByRole('button', { name: 'Cloud' })
-      .click();
-    await expect(page.locator('.cloud svg')).toBeVisible();
-    await expect(page.locator('[data-testid="insights-engine-note"]')).toBeVisible();
   });
 
   test('opens on the cloud and orders the sub-views by how often they are used', async ({
@@ -1088,7 +1074,9 @@ test.describe('word cloud controls', () => {
   test('changes how many words are offered to the layout', async ({ page }) => {
     await openCloud(page);
     const count = page.locator('[data-testid="cloud-count"]');
-    const placedLine = page.locator('[data-testid="cloud-placed"]');
+    // The visible "placed X / Y" line only appears when words were dropped, so the numbers live on
+    // the canvas container instead of in a translated sentence.
+    const fit = page.locator('[data-testid="cloud-fit"]');
 
     /*
      * The contract is "how many candidates go to the layout", not "how many end up on screen":
@@ -1098,12 +1086,12 @@ test.describe('word cloud controls', () => {
      */
     for (const option of ['20', '30', '40', '60']) {
       await count.getByRole('button', { name: option, exact: true }).click();
-      await expect(placedLine).toHaveAttribute('data-total', option);
+      await expect(fit).toHaveAttribute('data-total', option);
       await expect(count.getByRole('button', { name: option, exact: true })).toHaveAttribute('aria-pressed', 'true');
     }
 
     // Never more words on screen than were offered.
-    const placed = Number(await placedLine.getAttribute('data-placed'));
+    const placed = Number(await fit.getAttribute('data-placed'));
     expect(placed).toBeLessThanOrEqual(60);
     expect(await page.locator('.cloud__word').count()).toBeLessThanOrEqual(60);
   });

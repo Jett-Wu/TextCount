@@ -355,9 +355,6 @@ function FrequencyView({
             />
             <span>{t('insights.frequency.filter')}</span>
           </label>
-          <p class="hint" data-testid="insights-engine-note">
-            {t('insights.frequency.engineNote')}
-          </p>
         </>
       ) : (
         <p class="hint">{t('insights.frequency.characterNote')}</p>
@@ -573,8 +570,17 @@ function CloudView({
         </div>
       </div>
 
-      <div class="cloud" ref={holder}>
-        {cloudModule === null || width === 0 ? (
+      {/*
+        Machine-readable fit report. The visible line above appears only when words were dropped, so
+        tests read the numbers here instead of parsing a translated sentence that may not be shown.
+      */}
+      <div
+        class="cloud"
+        ref={holder}
+        data-testid="cloud-fit"
+        data-placed={placed?.placed ?? 0}
+        data-total={placed?.total ?? words.length}
+      >        {cloudModule === null || width === 0 ? (
           <p class="hint hint--busy">{t('insights.cloud.loading')}</p>
         ) : (
           <cloudModule.WordCloud
@@ -594,22 +600,13 @@ function CloudView({
           {t('insights.cloud.exportFailed')}
         </p>
       ) : null}
-      {placed !== null ? (
-        <p
-          class="hint"
-          data-testid="cloud-placed"
-          /* Machine-readable, so tests do not parse a translated sentence. */
-          data-placed={placed.placed}
-          data-total={placed.total}
-        >
-          {t('insights.cloud.placed', { placed: placed.placed, total: placed.total })}
-        </p>
+      {/*
+        Only when the canvas could not hold everything that was offered. At 30 words on a roomy
+        shape it placed 30/30, and a line announcing that was pure noise in an otherwise quiet panel.
+      */}
+      {placed !== null && placed.placed < placed.total ? (
+        <p class="hint">{t('insights.cloud.placed', { placed: placed.placed, total: placed.total })}</p>
       ) : null}
-      <p class="hint">{t('insights.cloud.note')}</p>
-      {/* The cloud is where a wrong word list looks most convincing, so the caveat travels with it. */}
-      <p class="hint" data-testid="insights-engine-note">
-        {t('insights.frequency.engineNote')}
-      </p>
     </>
   );
 }

@@ -162,7 +162,6 @@ export function SearchPanel({ session }: { session: { current: SearchSession } }
       <details class="inline-help">
         <summary>{t('help.title')}</summary>
         <p class="hint">{t('search.hint')}</p>
-        <p class="hint">{t('search.overlapHint')}</p>
       </details>
 
       {terms.length === 0 ? <p class="panel-empty">{t('search.empty')}</p> : null}

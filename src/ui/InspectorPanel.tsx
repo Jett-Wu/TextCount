@@ -272,8 +272,7 @@ export function InspectorPanel() {
 
       <details class="inline-help">
         <summary>{t('help.title')}</summary>
-        <p class="hint">{t('symbols.note')}</p>
-      </details>
+        </details>
     </div>
   );
 }
