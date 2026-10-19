@@ -6,8 +6,8 @@
  * secondary column. Nothing is hidden behind a hero and the tools never replace the editor.
  */
 
-import { useEffect } from 'preact/hooks';
-import { LOCALE_LABELS, LOCALE_SHORT_LABELS, LOCALES, type LocaleId } from '../locales';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { LOCALE_LABELS, LOCALES } from '../locales';
 import {
   appStore,
   setActiveTool,
@@ -19,19 +19,44 @@ import {
   type ThemePreference,
   type ToolId,
 } from '../app/state';
-import { NumberValue, Segmented } from './common';
+import { Icon, NumberValue, useSelectionIndicator } from './common';
 import { Editor } from './Editor';
-import { InsightsPanel } from './InsightsPanel';
+import { InsightsPanel, type InsightSession } from './InsightsPanel';
 import { InspectorPanel } from './InspectorPanel';
-import { SearchPanel } from './SearchPanel';
+import { SearchPanel, type SearchSession } from './SearchPanel';
 import { StatsPanel } from './StatsPanel';
 
 const TOOLS: readonly ToolId[] = ['stats', 'search', 'symbols', 'insights'];
+const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark'];
 
 function TopBar() {
   const t = useTranslate();
   const locale = useLocale();
   const theme = useStore(appStore, (state) => state.theme);
+  const [languageOpen, setLanguageOpen] = useState(false);
+  const picker = useRef<HTMLDivElement>(null);
+  const languageButton = useRef<HTMLButtonElement>(null);
+  const nextTheme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]!;
+
+  const closeLanguage = (restoreFocus = true) => {
+    setLanguageOpen(false);
+    if (restoreFocus) languageButton.current?.focus({ preventScroll: true });
+  };
+
+  useLayoutEffect(() => {
+    if (languageOpen) {
+      picker.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus();
+    }
+  }, [languageOpen]);
+
+  useEffect(() => {
+    if (!languageOpen) return;
+    const dismiss = (event: PointerEvent) => {
+      if (!picker.current?.contains(event.target as Node)) closeLanguage(false);
+    };
+    document.addEventListener('pointerdown', dismiss);
+    return () => document.removeEventListener('pointerdown', dismiss);
+  }, [languageOpen]);
 
   return (
     <header class="topbar">
@@ -43,28 +68,63 @@ function TopBar() {
       </div>
 
       <div class="topbar__controls">
-        <Segmented<LocaleId>
-          name="locale"
-          ariaLabel={t('topbar.language')}
-          value={locale}
-          onChange={setLocale}
-          options={LOCALES.map((id) => ({
-            value: id,
-            label: LOCALE_SHORT_LABELS[id],
-            title: LOCALE_LABELS[id],
-          }))}
-        />
-        <Segmented<ThemePreference>
-          name="theme"
-          ariaLabel={t('topbar.theme')}
-          value={theme}
-          onChange={setTheme}
-          options={[
-            { value: 'system', label: t('topbar.theme.systemShort'), title: t('topbar.theme.system') },
-            { value: 'light', label: t('topbar.theme.lightShort'), title: t('topbar.theme.light') },
-            { value: 'dark', label: t('topbar.theme.darkShort'), title: t('topbar.theme.dark') },
-          ]}
-        />
+        <div class="language-picker" ref={picker}>
+          <button ref={languageButton} type="button" class="header-button language-trigger"
+            data-control="locale" aria-label={t('topbar.language')}
+            aria-haspopup="menu" aria-controls="language-menu" aria-expanded={languageOpen}
+            title={`${t('topbar.language')}: ${LOCALE_LABELS[locale]}`}
+            onClick={() => setLanguageOpen(!languageOpen)}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                setLanguageOpen(true);
+              } else if (event.key === 'Escape') closeLanguage();
+            }}>
+            <Icon name="language" />
+          </button>
+          {languageOpen ? (
+            <div class="language-menu" id="language-menu" role="menu" aria-label={t('topbar.language')}
+              onKeyDown={(event) => {
+                const items = [...event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')];
+                const index = items.indexOf(document.activeElement as HTMLButtonElement);
+                if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+                  event.preventDefault();
+                  const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+                    : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+                  items[next]?.focus();
+                } else if (event.key === 'Escape') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  closeLanguage();
+                } else if (event.key === 'Tab') {
+                  event.preventDefault();
+                  closeLanguage();
+                  if (!event.shiftKey) document.querySelector<HTMLButtonElement>('[data-control="theme"]')?.focus();
+                }
+              }}>
+              {LOCALES.map((id) => (
+                <button key={id} type="button" role="menuitemradio" aria-checked={locale === id}
+                  tabIndex={-1} class="language-menu__item" lang={id} data-locale={id}
+                  onClick={() => { setLocale(id); closeLanguage(); }}>
+                  <span>{LOCALE_LABELS[id]}</span>
+                  {locale === id ? <Icon name="check" /> : null}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <button type="button" class="header-button theme-button" data-control="theme"
+          data-theme-preference={theme} aria-label={`${t('topbar.theme')}: ${t(`topbar.theme.${theme}`)}`}
+          title={`${t(`topbar.theme.${theme}`)} → ${t(`topbar.theme.${nextTheme}`)}`}
+          onClick={() => setTheme(nextTheme)}>
+          <span class="theme-button__glyph" key={theme}>
+            <Icon name={theme === 'system' ? 'system' : theme === 'dark' ? 'moon' : 'sun'} />
+          </span>
+        </button>
+        <a class="header-link" href="https://github.com/Jett-Wu" target="_blank"
+          rel="noopener noreferrer" aria-label="GitHub" title="GitHub · Jett-Wu">
+          <Icon name="github" />
+        </a>
       </div>
     </header>
   );
@@ -86,7 +146,10 @@ function Stats() {
   return (
     <section class="stats" aria-label={t('stats.summary')}>
       <div class="stats__item stats__item--lead">
-        <span class="stats__label">{t(`headline.primary.${metric}`)}</span>
+        <button class="stats__label stats__label--action" title={t('stats.rules.open')}
+          onClick={() => { setActiveTool('stats'); appStore.set({ ruleMenuOpen: true }); }}>
+          {t(`headline.primary.${metric}`)}
+        </button>
         <NumberValue value={stats.primary} class="stats__value" />
       </div>
       <div class="stats__item">
@@ -97,8 +160,8 @@ function Stats() {
         <NumberValue value={stats.graphemes} class="stats__value" />
       </div>
       <div class="stats__item">
-        <span class="stats__label">{t('headline.primary.charsNoSpace')}</span>
-        <NumberValue value={stats.graphemesNoWhitespace} class="stats__value" />
+        <span class="stats__label">{t('headline.paragraphs')}</span>
+        <NumberValue value={stats.paragraphs} class="stats__value" />
       </div>
     </section>
   );
@@ -111,6 +174,13 @@ function Stats() {
 function Tools() {
   const t = useTranslate();
   const active = useStore(appStore, (state) => state.activeTool);
+  const indicator = useSelectionIndicator(active);
+  const panel = useRef<HTMLDivElement>(null);
+  const searchSession = useRef<SearchSession>({ terms: [], draft: '', caseSensitive: true, activeTerm: 0, activeMatch: 0 });
+  const insightSession = useRef<InsightSession>({ view: 'paragraphs', order: 'document', unit: 'word', filterStopWords: true });
+  useLayoutEffect(() => {
+    if (panel.current) panel.current.scrollTop = 0;
+  }, [active]);
 
   const moveFocus = (delta: number): void => {
     const index = TOOLS.indexOf(active);
@@ -122,37 +192,45 @@ function Tools() {
 
   return (
     <aside class="tools">
-      <div class="switcher" role="tablist" aria-label={t('tools.label')}>
-        {TOOLS.map((tool) => {
-          const selected = tool === active;
-          return (
-            <button
-              key={tool}
-              type="button"
-              role="tab"
-              id={`textcount-tab-${tool}`}
-              class={selected ? 'switcher__item switcher__item--on' : 'switcher__item'}
-              aria-selected={selected}
-              aria-controls={`textcount-panel-${tool}`}
-              tabIndex={selected ? 0 : -1}
-              onClick={() => setActiveTool(tool)}
-              onKeyDown={(event) => {
-                if (event.key === 'ArrowRight') {
-                  event.preventDefault();
-                  moveFocus(1);
-                } else if (event.key === 'ArrowLeft') {
-                  event.preventDefault();
-                  moveFocus(-1);
-                }
-              }}
-            >
-              {t(`tool.${tool}`)}
-            </button>
-          );
-        })}
+      <div class="tools__head">
+        <div ref={indicator} class="switcher motion-track" role="tablist" aria-label={t('tools.label')}>
+          {TOOLS.map((tool) => {
+            const selected = tool === active;
+            return (
+              <button
+                key={tool}
+                type="button"
+                role="tab"
+                id={`textcount-tab-${tool}`}
+                class={selected ? 'switcher__item switcher__item--on' : 'switcher__item'}
+                aria-selected={selected}
+                aria-controls={`textcount-panel-${tool}`}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => setActiveTool(tool)}
+                onKeyDown={(event) => {
+                  if (event.key === 'ArrowRight') {
+                    event.preventDefault();
+                    moveFocus(1);
+                  } else if (event.key === 'ArrowLeft') {
+                    event.preventDefault();
+                    moveFocus(-1);
+                  } else if (event.key === 'Home' || event.key === 'End') {
+                    event.preventDefault();
+                    const next = event.key === 'Home' ? TOOLS[0]! : TOOLS.at(-1)!;
+                    setActiveTool(next);
+                    document.getElementById(`textcount-tab-${next}`)?.focus();
+                  }
+                }}
+              >
+                {t(`tool.${tool}`)}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div
+        ref={panel}
         class="tools__panel"
         role="tabpanel"
         id={`textcount-panel-${active}`}
@@ -160,10 +238,11 @@ function Tools() {
         data-testid={`panel-${active}`}
       >
         {active === 'stats' ? <StatsPanel /> : null}
-        {active === 'search' ? <SearchPanel /> : null}
+        {active === 'search' ? <SearchPanel session={searchSession} /> : null}
         {active === 'symbols' ? <InspectorPanel /> : null}
-        {active === 'insights' ? <InsightsPanel /> : null}
-      </div>    </aside>
+        {active === 'insights' ? <InsightsPanel session={insightSession} /> : null}
+      </div>
+    </aside>
   );
 }
 

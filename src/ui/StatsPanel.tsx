@@ -9,7 +9,7 @@
 import { appStore, setCountSettings, useStore, useTranslate } from '../app/state';
 import { PRIMARY_METRICS, type CountSettings, type PrimaryMetricId } from '../core/count';
 import type { MessageKey } from '../locales';
-import { NumberValue } from './common';
+import { Icon, NumberValue } from './common';
 
 const METRIC_LABEL: Record<PrimaryMetricId, MessageKey> = {
   mixed: 'stats.rules.primary.mixed',
@@ -53,8 +53,6 @@ function RuleMenu() {
         ))}
       </fieldset>
 
-      <p class="rules__explain">{t(METRIC_EXPLANATION[settings.primaryMetric])}</p>
-
       <fieldset class="rules__group">
         <legend class="rules__legend">{t('stats.rules.options')}</legend>
         <label class="rules__option">
@@ -75,7 +73,10 @@ function RuleMenu() {
         </label>
       </fieldset>
 
-      <p class="rules__note">{t('stats.rules.note')}</p>
+      <details class="inline-help rules__details">
+        <summary>{t('stats.rules.definition')}</summary>
+        <p class="rules__explain">{t(METRIC_EXPLANATION[settings.primaryMetric])}</p>
+      </details>
     </div>
   );
 }
@@ -98,6 +99,7 @@ const COUNT_ROWS: Row[] = [
 
 const STRUCTURE_ROWS: Row[] = [
   { key: 'stats.metric.graphemes', value: 0 },
+  { key: 'headline.primary.charsNoSpace', value: 0 },
   { key: 'stats.metric.whitespace', value: 0 },
   { key: 'stats.metric.lines', value: 0 },
   { key: 'stats.metric.paragraphs', value: 0 },
@@ -109,7 +111,6 @@ export function StatsPanel() {
   const stats = useStore(appStore, (state) => state.stats);
   const rulesOpen = useStore(appStore, (state) => state.ruleMenuOpen);
   const textLength = useStore(appStore, (state) => state.textLength);
-  const metric = useStore(appStore, (state) => state.countSettings.primaryMetric);
 
   const values: Record<string, number> = {
     'stats.metric.han': stats.han,
@@ -119,6 +120,7 @@ export function StatsPanel() {
     'stats.metric.otherWords': stats.otherWords,
     'stats.metric.punctuation': stats.punctuation,
     'stats.metric.graphemes': stats.graphemes,
+    'headline.primary.charsNoSpace': stats.graphemesNoWhitespace,
     'stats.metric.whitespace': stats.whitespace,
     'stats.metric.lines': stats.lines,
     'stats.metric.paragraphs': stats.paragraphs,
@@ -143,33 +145,40 @@ export function StatsPanel() {
 
   return (
     <div class="panel-body">
-      <button
-        type="button"
-        class="rule-trigger"
-        aria-expanded={rulesOpen}
-        onClick={() => appStore.set({ ruleMenuOpen: !rulesOpen })}
-      >
-        <span class="rule-trigger__label">{t('stats.rules.open')}</span>
-        <span class="rule-trigger__value">{t(METRIC_LABEL[metric])}</span>
-        <span class="rule-trigger__chevron" aria-hidden="true">
-          {rulesOpen ? '⌃' : '⌄'}
-        </span>
-      </button>
+      <div class="rule-control">
+        <button
+          type="button"
+          class="rule-trigger"
+          aria-expanded={rulesOpen}
+          aria-controls="textcount-rules"
+          onClick={() => appStore.set({ ruleMenuOpen: !rulesOpen })}
+        >
+          <span class="rule-trigger__label">{t('stats.rules.open')}</span>
+          <span class="rule-trigger__chevron" aria-hidden="true">
+            <Icon name="chevron" />
+          </span>
+        </button>
 
-      {rulesOpen ? <RuleMenu /> : null}
+        {/* Keeping the small form mounted lets a closing transition reverse on the next click. */}
+        <div id="textcount-rules" class={rulesOpen ? 'rules-reveal rules-reveal--open' : 'rules-reveal'}
+          aria-hidden={!rulesOpen} inert={!rulesOpen}>
+          <div class="rules-reveal__inner"><RuleMenu /></div>
+        </div>
+      </div>
 
       {textLength === 0 ? (
         <p class="panel-empty">{t('stats.emptyHint')}</p>
       ) : (
         <>
           <section class="metrics__group">
-            <h3 class="panel-heading">{t('stats.group.counts')}</h3>
             {renderRows(COUNT_ROWS)}
           </section>
-          <section class="metrics__group">
-            <h3 class="panel-heading">{t('stats.group.structure')}</h3>
+          <details class="more-stats">
+            <summary>{t('stats.more')}<Icon name="chevron" /></summary>
+            <section class="metrics__group">
             {renderRows(STRUCTURE_ROWS)}
-          </section>
+            </section>
+          </details>
         </>
       )}
     </div>

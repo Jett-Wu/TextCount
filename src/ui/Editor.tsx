@@ -6,14 +6,15 @@
  * multi-megabyte string from flowing through the component tree on every keystroke. Counts are
  * driven by `setText`, which only records the text and schedules a scan.
  *
- * The header, the input and the note below it form one bordered card, so the input does not read
- * as a bare rectangle and the actions belong visibly to the text they act on. Focus is shown on
- * the card (`:focus-within`) rather than with a glow on the field itself.
+ * The actions stay with the input. Counting status lives in the fixed-height header so a worker
+ * finishing cannot resize the textarea and move the reader's position.
  */
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { copyAllText, registerEditor } from '../app/editor';
 import { INLINE_ANALYSIS_LIMIT, appStore, setText, useStore, useTranslate } from '../app/state';
+import { Icon } from './common';
+import { DocumentImport } from './DocumentImport';
 
 /** Above this size, clearing needs a confirming second click. */
 const CLEAR_CONFIRM_THRESHOLD = 200_000;
@@ -86,15 +87,21 @@ export function Editor() {
     <section class="editor" aria-label={t('editor.ariaLabel')}>
       <header class="editor__head">
         <h2 class="editor__title">{t('editor.title')}</h2>
+        <span class="editor__status" aria-live="polite">
+          {computing ? t('editor.computing') : null}
+        </span>
         <div class="editor__actions">
+          <DocumentImport editor={ref} />
           <button
             type="button"
             class="btn btn--quiet"
             onClick={handleCopy}
             disabled={textLength === 0}
             title={copyTitle}
+            aria-label={copyLabel}
           >
-            {copyLabel}
+            <Icon name="copy" />
+            <span class="editor__action-label">{copyLabel}</span>
           </button>
           <button
             type="button"
@@ -103,8 +110,10 @@ export function Editor() {
             onBlur={disarmClear}
             disabled={textLength === 0}
             title={clearArmed ? t('editor.clearConfirmHint') : t('editor.clear')}
+            aria-label={clearArmed ? t('editor.clearConfirm') : t('editor.clear')}
           >
-            {clearArmed ? t('editor.clearConfirm') : t('editor.clear')}
+            <Icon name="clear" />
+            <span class="editor__action-label">{clearArmed ? t('editor.clearConfirm') : t('editor.clear')}</span>
           </button>
         </div>
       </header>
@@ -124,21 +133,13 @@ export function Editor() {
         />
       </div>
 
-      <footer class="editor__foot">
-        <p class="editor__note">
-          <span>{t('editor.localNote')}</span>
-          {/* Kept visible rather than hidden in a tooltip: the honest caveat that the host keeps
-              access logs is part of the privacy claim, not a footnote to it. */}
-          <span class="editor__note-detail">{t('editor.hostingNote')}</span>
-        </p>
+      {longText && degraded ? <footer class="editor__foot">
         <span class="editor__status" aria-live="polite">
-          {computing ? <span class="pill pill--busy">{t('editor.computing')}</span> : null}
-          {longText && !computing ? <span class="pill">{t('editor.longText')}</span> : null}
           {longText && degraded ? (
             <span class="pill pill--warn">{t('editor.degradedNotice')}</span>
           ) : null}
         </span>
-      </footer>
+      </footer> : null}
     </section>
   );
 }

@@ -7,7 +7,7 @@
  * first-load bundle.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ComponentType } from 'preact';
 import { locateFirst, revealRange } from '../app/editor';
 import {
@@ -20,6 +20,7 @@ import {
 import type { FrequencyUnit } from '../core/insights';
 import type { MessageKey } from '../locales';
 import type { CloudWord, WordCloudProps } from './WordCloud';
+import { useSelectionIndicator } from './common';
 
 const ANALYSIS_DEBOUNCE_MS = 200;
 /** Rows rendered at once. Far more than this and the panel becomes a scroll marathon. */
@@ -59,17 +60,30 @@ function useElementWidth<T extends HTMLElement>(ref: { current: T | null }): num
   return width;
 }
 
-export function InsightsPanel() {
+export interface InsightSession {
+  view: InsightView;
+  order: ParagraphOrder;
+  unit: FrequencyUnit;
+  filterStopWords: boolean;
+}
+
+export function InsightsPanel({ session }: { session: { current: InsightSession } }) {
   const t = useTranslate();
   const revision = useStore(appStore, (state) => state.revision);
   const textLength = useStore(appStore, (state) => state.textLength);
-  const [view, setView] = useState<InsightView>('paragraphs');
-  const [order, setOrder] = useState<ParagraphOrder>('document');
-  const [unit, setUnit] = useState<FrequencyUnit>('word');
-  const [filterStopWords, setFilterStopWords] = useState(true);
+  const [view, setView] = useState(session.current.view);
+  const viewIndicator = useSelectionIndicator(view);
+  const [order, setOrder] = useState(session.current.order);
+  const [unit, setUnit] = useState(session.current.unit);
+  const [filterStopWords, setFilterStopWords] = useState(session.current.filterStopWords);
   const [data, setData] = useState<InsightsResult | null>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [placed, setPlaced] = useState<{ placed: number; total: number } | null>(null);
+
+  // The inactive panel stays unmounted, so remembering a view never starts background analysis.
+  useLayoutEffect(() => {
+    session.current = { view, order, unit, filterStopWords };
+  }, [view, order, unit, filterStopWords]);
 
   useEffect(() => {
     if (textLength === 0) {
@@ -97,7 +111,8 @@ export function InsightsPanel() {
   return (
     <div class="panel-body">
       <div
-        class="switcher switcher--sub"
+        ref={viewIndicator}
+        class="switcher switcher--sub motion-track"
         role="group"
         aria-label={t('tool.insights')}
         data-testid="insights-views"

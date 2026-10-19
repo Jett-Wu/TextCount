@@ -21,6 +21,10 @@ body {
   height: 100%;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -85,6 +89,13 @@ select {
   color: var(--text-muted);
 }
 
+.icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  vertical-align: middle;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -106,10 +117,9 @@ select {
 .app {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
+  width: 100%;
   height: 100vh;
   height: 100dvh;
-  max-width: var(--content-max);
-  margin: 0 auto;
   padding: 0 var(--gutter);
 }
 
@@ -118,7 +128,7 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  min-height: 64px;
+  min-height: clamp(64px, 5vw, 80px);
   padding: var(--space-3) 0;
 }
 
@@ -132,8 +142,8 @@ select {
 .brand__mark {
   display: inline-grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--radius-sm);
   background: var(--accent-wash);
   color: var(--accent);
@@ -157,6 +167,88 @@ select {
   justify-content: flex-end;
 }
 
+.header-button,
+.header-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--dur-tap) var(--ease), color var(--dur-tap) var(--ease),
+    transform var(--dur-tap) var(--ease);
+}
+
+.header-button:hover,
+.header-link:hover {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.header-button:active { transform: scale(0.94); }
+.header-button .icon,
+.header-link .icon { width: 19px; height: 19px; }
+
+.language-picker { position: relative; }
+.language-trigger[aria-expanded='true'] { background: var(--accent-soft); color: var(--accent-strong); }
+
+.language-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 192px;
+  padding: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
+  transform-origin: top right;
+  animation: menu-enter 160ms var(--ease);
+}
+
+.language-menu__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  background: transparent;
+  font-size: var(--size-control);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur-tap) var(--ease), color var(--dur-tap) var(--ease);
+}
+
+.language-menu__item:hover,
+.language-menu__item:focus-visible { background: var(--surface-hover); }
+.language-menu__item[aria-checked='true'] { background: var(--accent-soft); color: var(--accent-strong); }
+.language-menu__item:focus-visible { outline-offset: -2px; }
+.theme-button__glyph { display: inline-flex; animation: theme-turn var(--dur-tab) var(--ease); }
+
+@keyframes menu-enter {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes theme-turn {
+  from { opacity: 0.3; transform: rotate(-30deg) scale(0.8); }
+  to { opacity: 1; transform: rotate(0) scale(1); }
+}
+
 /* ------------------------------------------------------------------ headline numbers */
 
 /*
@@ -164,26 +256,44 @@ select {
  * the value is bottom-aligned, so the three figures keep one baseline even when a label wraps
  * onto a second line; anything placed below a value would push that single number out of line.
  *
- * Sized as one compact result group rather than three columns of the page. Spread across the full
- * 1296px the labels started at x=72, 564 and 978 — the third figure sat closer to the tool panel
- * than to the number it qualifies, so a reader's eye travelled the whole width to compare three
- * related figures. The group is bounded and left-aligned with the editor.
+ * Equal tracks and centered label/value pairs keep the summary balanced against the full workspace.
+ * Weight and accent distinguish the primary count without shifting the shared numeric baseline.
  */
 .stats {
   display: grid;
-  grid-template-columns: minmax(0, 264px) minmax(0, 204px) minmax(0, 204px);
-  justify-content: start;
-  gap: var(--space-3) 40px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3) 0;
   align-items: stretch;
-  padding: var(--space-2) 0 var(--space-6);
+  padding: var(--space-4) 0 var(--space-5);
 }
 
 .stats__item {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  align-items: center;
+  text-align: center;
+  padding-inline: var(--space-2);
   gap: 2px;
   min-width: 0;
+}
+
+.stats__item + .stats__item {
+  border-left: 1px solid var(--border);
+}
+
+.stats__label--action {
+  align-self: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: center;
+}
+
+.stats__label--action:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .stats__label {
@@ -197,7 +307,7 @@ select {
 
 .stats__value {
   font-size: var(--size-stat);
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.15;
   letter-spacing: -0.02em;
 }
@@ -208,7 +318,9 @@ select {
 }
 
 .stats__item--lead .stats__value {
-  font-size: var(--size-display);
+  font-size: var(--size-stat);
+  font-weight: 600;
+  color: var(--text);
 }
 
 /* ------------------------------------------------------------------ workspace */
@@ -216,9 +328,14 @@ select {
 .workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--sidebar-width);
-  gap: var(--col-gap);
+  gap: 0;
   min-height: 0;
-  padding-bottom: var(--space-5);
+  margin-bottom: var(--gutter);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
 }
 
 /* ------------------------------------------------------------------ editor */
@@ -228,10 +345,11 @@ select {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border: 0;
+  border-radius: 0;
   background: var(--surface);
   overflow: hidden;
+  box-shadow: none;
   transition:
     border-color var(--dur-tap) var(--ease),
     box-shadow var(--dur-tap) var(--ease),
@@ -239,31 +357,56 @@ select {
 }
 
 .editor:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft);
 }
 
 .editor__head {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5);
+  padding: 0 var(--space-3) 0 var(--space-5);
   border-bottom: 1px solid var(--border);
-  min-height: 52px;
+  height: var(--workspace-bar-height);
+  min-height: var(--workspace-bar-height);
 }
 
 .editor__title {
-  font-size: var(--size-panel);
-  font-weight: 600;
+  flex: none;
+  white-space: nowrap;
+  font-size: var(--size-control);
+  font-weight: 500;
   letter-spacing: -0.01em;
 }
 
 .editor__actions {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-1);
 }
+
+.import-control { display: flex; }
+.import-notice {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 20;
+  width: min(320px, calc(100vw - 64px));
+  padding: var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+  animation: menu-enter var(--dur-tab) var(--ease);
+}
+.import-notice__head { display: flex; align-items: center; gap: var(--space-2); }
+.import-notice__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--size-meta); font-weight: 500; }
+.import-notice__message { display: flex; align-items: center; gap: var(--space-2); margin-block: var(--space-2); font-size: var(--size-meta); line-height: 1.6; color: var(--text-muted); }
+.import-notice__actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
+.import-spinner { flex: none; width: 14px; height: 14px; border: 1.5px solid var(--border-strong); border-top-color: var(--accent); border-radius: 50%; animation: import-spin 800ms linear infinite; }
+@keyframes import-spin { to { transform: rotate(360deg); } }
 
 .editor__body {
   flex: 1;
@@ -284,6 +427,7 @@ select {
   resize: none;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .editor__input::placeholder {
@@ -301,46 +445,43 @@ select {
   min-height: 40px;
 }
 
-.editor__note {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--space-2);
-  margin: 0;
-  font-size: var(--size-micro);
-  color: var(--text-muted);
-  line-height: 1.5;
-}
-
-.editor__note-detail {
-  color: var(--text-muted);
-}
-
-.editor__note-detail::before {
-  content: '· ';
-}
-
 .editor__status {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   flex-wrap: wrap;
+  font-size: var(--size-meta);
 }
+
+.editor__status:empty { display: none; }
 
 /* ------------------------------------------------------------------ tools */
 
 /*
- * The panel is not stretched to match the editor: it ends where its content ends, which is what
- * removes the "data crammed at the top, huge empty space below" look. When the content does
- * exceed the available height the panel scrolls internally instead of growing the page.
+ * Neutral panel surfaces keep a large analysis area from becoming an accent-colored block.
+ * Color belongs to the selected control or result, so the editor remains the visual anchor.
  */
 .tools {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  align-self: start;
+  gap: 0;
+  align-self: stretch;
   max-height: 100%;
   min-height: 0;
+  border-left: 1px solid var(--border);
+  background: var(--surface-panel);
 }
+
+.tools__head {
+  display: flex;
+  align-items: center;
+  flex: none;
+  height: var(--workspace-bar-height);
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.tools__head > .switcher { width: 100%; min-width: 0; }
 
 .switcher {
   display: flex;
@@ -354,7 +495,7 @@ select {
 .switcher__item {
   flex: 1;
   min-width: 0;
-  min-height: 32px;
+  min-height: 36px;
   padding: 6px 10px;
   border: 0;
   border-radius: var(--radius-sm);
@@ -382,7 +523,7 @@ select {
  * The sub-level drops the track and marks the active item with an underline instead.
  */
 .switcher--sub {
-  gap: var(--space-4);
+  gap: 0;
   padding: 0;
   border-bottom: 1px solid var(--border);
   border-radius: 0;
@@ -390,7 +531,7 @@ select {
 }
 
 .switcher--sub .switcher__item {
-  flex: 0 1 auto;
+  flex: 1 1 0;
   min-height: 30px;
   padding: 6px 0;
   margin-bottom: -1px;
@@ -427,10 +568,12 @@ select {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   overscroll-behavior: contain;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   transition:
     background-color var(--dur-tab) var(--ease),
     border-color var(--dur-tab) var(--ease);
@@ -442,15 +585,45 @@ select {
   padding: var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
+  animation: panel-enter var(--dur-panel) var(--ease);
 }
+
+@keyframes panel-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.more-stats > summary,
+.inline-help > summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 40px;
+  font-size: var(--size-meta);
+  color: var(--text-muted);
+  cursor: pointer;
+  list-style: none;
+}
+
+.more-stats > summary::-webkit-details-marker,
+.inline-help > summary::-webkit-details-marker {
+  display: none;
+}
+
+.more-stats[open] > summary .icon { transform: rotate(180deg); }
+.more-stats > summary .icon { transition: transform var(--dur-tab) var(--ease); }
+.more-stats { border-top: 1px solid var(--border); }
+.inline-help .hint + .hint { margin-top: 4px; }
+.inline-help > summary::after { content: '+'; }
+.inline-help[open] > summary::after { content: '−'; }
 
 /*
  * The empty panel is given room rather than squeezed into a stub: with the card ending where
  * its content ends, a cramped empty state would read as a rendering failure.
  */
 .panel-empty {
-  padding: var(--space-6) var(--space-2);
+  padding: var(--space-5) var(--space-2);
   color: var(--text-muted);
   font-size: var(--size-control);
   line-height: 1.65;
@@ -462,11 +635,11 @@ select {
   align-items: center;
   gap: var(--space-2);
   width: 100%;
-  min-height: 40px;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border);
+  min-height: 32px;
+  padding: 0;
+  border: 0;
   border-radius: var(--radius-sm);
-  background: var(--surface);
+  background: transparent;
   font-size: var(--size-control);
   cursor: pointer;
   text-align: left;
@@ -498,11 +671,44 @@ select {
 }
 
 .rule-trigger__chevron {
+  margin-left: auto;
   color: var(--text-muted);
   font-size: 12px;
+  display: inline-flex;
+  transition: transform var(--dur-panel) var(--ease);
 }
 
-/* Rule card expands in place; only opacity animates, so nothing shifts while it appears. */
+.rule-trigger[aria-expanded='true'] .rule-trigger__chevron {
+  transform: rotate(180deg);
+}
+
+/* Only this small sidebar form changes height; the document never participates in the transition. */
+.rules-reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  /* Delay hiding, not showing: a reversed visibility transition can otherwise drop keyboard focus. */
+  transition: grid-template-rows var(--dur-panel) var(--ease),
+    opacity var(--dur-tab) var(--ease), visibility 0s linear var(--dur-panel);
+}
+
+.rules-reveal--open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.rules-reveal__inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.rules-reveal__inner .rules {
+  margin-top: var(--space-4);
+}
+
 .rules {
   display: flex;
   flex-direction: column;
@@ -511,16 +717,6 @@ select {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface-sunken);
-  animation: panel-in var(--dur-panel) var(--ease);
-}
-
-@keyframes panel-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 .rules__group {
@@ -640,7 +836,8 @@ select {
   transition:
     background-color var(--dur-tap) var(--ease),
     border-color var(--dur-tap) var(--ease),
-    color var(--dur-tap) var(--ease);
+    color var(--dur-tap) var(--ease),
+    transform var(--dur-tap) var(--ease);
 }
 
 .btn:hover:not(:disabled) {
@@ -650,6 +847,7 @@ select {
 
 .btn:active:not(:disabled) {
   background: var(--surface-sunken);
+  transform: scale(0.97);
 }
 
 .btn:disabled {
@@ -708,42 +906,6 @@ select {
   border-color: var(--warn);
   color: var(--warn);
   background: var(--warn-soft);
-}
-
-/* ------------------------------------------------------------------ segmented control */
-
-.segmented {
-  display: inline-flex;
-  gap: 2px;
-  padding: 2px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-sunken);
-  transition: background-color var(--dur-tab) var(--ease);
-}
-
-.segmented__item {
-  min-height: 28px;
-  padding: 3px var(--space-3);
-  border: 0;
-  border-radius: var(--radius-xs);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: var(--size-meta);
-  cursor: pointer;
-  transition:
-    background-color var(--dur-tap) var(--ease),
-    color var(--dur-tap) var(--ease);
-}
-
-.segmented__item:hover {
-  color: var(--text);
-}
-
-.segmented__item--on {
-  background: var(--surface);
-  color: var(--text);
-  font-weight: 500;
-  box-shadow: var(--shadow-sm);
 }
 
 /* ------------------------------------------------------------------ forms */
@@ -1262,6 +1424,78 @@ select {
   outline-offset: 2px;
 }
 
+/* A single persistent highlight can reverse mid-flight instead of fading two separate buttons. */
+.motion-track {
+  position: relative;
+  isolation: isolate;
+  --track-inset: 3px;
+}
+
+.motion-track::before {
+  content: '';
+  position: absolute;
+  top: var(--track-inset);
+  bottom: var(--track-inset);
+  left: 0;
+  width: var(--selection-width, 0px);
+  transform: translateX(var(--selection-x, 0px));
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+  opacity: 0;
+  transition: transform var(--dur-panel) var(--ease),
+    width var(--dur-panel) var(--ease), background-color var(--dur-tab) var(--ease);
+}
+
+.motion-track[data-indicator-ready='true']::before {
+  opacity: 1;
+}
+
+.motion-track > button {
+  position: relative;
+  z-index: 1;
+}
+
+.motion-track[data-indicator-ready='true'] > .switcher__item--on {
+  background: transparent;
+  box-shadow: none;
+}
+
+.switcher--sub.motion-track::before {
+  top: auto;
+  bottom: -1px;
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  box-shadow: none;
+}
+
+.switcher--sub.motion-track[data-indicator-ready='true'] > .switcher__item--on {
+  border-bottom-color: transparent;
+}
+
+.stats__value,
+.stats__label,
+.stats__item,
+.brand__mark,
+.editor__head,
+.tools__head,
+.editor__foot,
+.editor__input,
+.metrics__label,
+.metrics__value,
+.panel-heading,
+.rules,
+.rule-trigger,
+.context,
+.group,
+.chip,
+.sym {
+  transition: color var(--dur-tab) var(--ease),
+    background-color var(--dur-tab) var(--ease), border-color var(--dur-tab) var(--ease);
+}
+
 /* ------------------------------------------------------------------ responsive
  *
  * Every media query lives at the end of the file on purpose: these rules override the base
@@ -1302,22 +1536,22 @@ select {
   }
 
   .stats {
-    /* Still one compact group; the three tracks shrink together rather than stacking. */
-    gap: var(--space-2) var(--space-4);
+    gap: var(--space-2) 0;
     padding-bottom: var(--space-4);
   }
 
   .stats__item--lead .stats__value {
-    font-size: 36px;
+    font-size: 26px;
   }
 
   .stats__value {
-    font-size: 22px;
+    font-size: 26px;
   }
+
 
   .workspace {
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-4);
+    gap: 0;
   }
 
   /*
@@ -1340,6 +1574,8 @@ select {
   .tools {
     align-self: stretch;
     max-height: none;
+    border-left: 0;
+    border-top: 1px solid var(--border);
   }
 
   .tools__panel {
@@ -1352,7 +1588,7 @@ select {
  * Vertical space, not width, is the scarce resource: stacking would put the tools below the
  * fold and leave a 158px editor, so two compact columns win.
  */
-@media (max-height: 560px) {
+@media (max-height: 560px) and (min-width: 600px) {
   .app {
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr);
@@ -1367,14 +1603,12 @@ select {
   }
 
   .stats {
-    /* Portrait tablets and small laptops: keep the compact group, tighten the gutters. */
-    grid-template-columns: minmax(0, 240px) minmax(0, 190px) minmax(0, 190px);
-    gap: var(--space-2) var(--space-5);
+    gap: var(--space-2) 0;
     padding: var(--space-1) 0 var(--space-3);
   }
 
   .stats__item--lead .stats__value {
-    font-size: 26px;
+    font-size: 18px;
   }
 
   .stats__value {
@@ -1382,14 +1616,12 @@ select {
   }
 
   .workspace {
-    grid-template-columns: minmax(0, 1fr) minmax(220px, 38%);
-    gap: var(--space-3);
-    padding-bottom: var(--space-2);
+    grid-template-columns: minmax(0, 1fr) minmax(292px, 38%);
+    gap: 0;
+    margin-bottom: var(--space-3);
   }
 
-  .editor__head {
-    min-height: 44px;
-  }
+  :root { --workspace-bar-height: 48px; }
 
   .editor__input {
     padding: var(--space-3) var(--space-4);
@@ -1403,16 +1635,25 @@ select {
   .tools {
     align-self: stretch;
     max-height: none;
+    border-top: 0;
+    border-left: 1px solid var(--border);
   }
 
   .tools__panel {
     overflow-y: auto;
   }
 
+  .tools__head { padding-inline: var(--space-2); }
+  .tools__head > .switcher > .switcher__item { padding-inline: 6px; }
+
   .panel-body {
     padding: var(--space-4);
     gap: var(--space-4);
   }
+}
+
+@media (max-height: 560px) and (min-width: 600px) and (max-width: 900px) {
+  .editor__action-label { display: none; }
 }
 
 @media (max-width: 560px) {
@@ -1421,43 +1662,31 @@ select {
   }
 
   .topbar {
-    flex-wrap: wrap;
-    row-gap: var(--space-1);
-    min-height: 0;
+    flex-wrap: nowrap;
+    min-height: 64px;
     padding: var(--space-2) 0;
   }
 
-  /* Language and theme share one row across the full width instead of stacking left-aligned. */
   .topbar__controls {
-    width: 100%;
-    justify-content: space-between;
+    width: auto;
+    gap: var(--space-1);
+    flex-wrap: nowrap;
+    justify-content: flex-end;
   }
 
-  /*
-   * One compact row of three, rather than the lead figure on a row of its own. Stacking cost
-   * 148px above the editor, which pushed the tools to y=648 — below the fold on a 390x844 phone.
-   *
-   * Flex rather than fixed tracks, because a seven-digit count is nine characters once the
-   * thousands separators are in: `1,169,590` measured wider than its 132px track and was clipping.
-   * With `min-width: min-content` the row simply wraps to two when the numbers grow, which is the
-   * documented fallback — no overflow, nothing truncated, and no need to guess how many digits
-   * the user will paste.
-   */
+
+  /* Intrinsic minimums let long counts wrap rather than clip; ordinary counts share equal space. */
   .stats {
     display: flex;
     flex-wrap: wrap;
     align-items: stretch;
-    gap: 2px var(--space-3);
+    gap: var(--space-2) 0;
     padding: var(--space-1) 0 var(--space-3);
   }
 
   .stats__item {
-    flex: 1 1 auto;
+    flex: 1 1 0;
     min-width: min-content;
-  }
-
-  .stats__item--lead {
-    flex-grow: 1.3;
   }
 
   .stats__value {
@@ -1469,15 +1698,23 @@ select {
   }
 
   .stats__item--lead .stats__value {
-    font-size: 34px;
+    font-size: 26px;
   }
 
   .stats__value {
-    font-size: 21px;
+    font-size: 26px;
   }
 
   .editor__head {
     padding-left: var(--space-4);
+  }
+
+  .editor__actions > .btn--quiet { min-width: 36px; padding-inline: var(--space-2); }
+  .editor__action-label { display: none; }
+
+  .editor__input {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
   }
 
   .editor__foot {
@@ -1485,9 +1722,6 @@ select {
     padding-right: var(--space-4);
   }
 
-  .editor__note {
-    line-height: 1.45;
-  }
 }
 
 /*
@@ -1499,6 +1733,14 @@ select {
  * first. Targets grow by real padding, never by pseudo-elements that overlap their neighbour.
  */
 @media (pointer: coarse) {
+  :root { --workspace-bar-height: 64px; }
+  .header-button,
+  .header-link {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .language-menu__item { min-height: 44px; }
   .btn,
   .btn--quiet,
   .rule-trigger,
@@ -1507,11 +1749,7 @@ select {
   }
 
   .switcher__item,
-  .segmented__item {
-    min-height: 44px;
-  }
-
-  .check,
+.check,
   .rules__option {
     min-height: 44px;
   }
@@ -1519,21 +1757,16 @@ select {
   .chip,
   .sym {
     min-height: 44px;
+    min-width: 44px;
+  }
+
+  .btn--icon,
+  .btn--ghost {
+    min-width: 44px;
   }
 }
 
 @media (max-width: 380px) {
-  /* The three header controls need ~292px at default padding, which does not fit the 273px
-     available at 320px, so the header would wrap onto a third row. */
-  .segmented {
-    gap: 1px;
-  }
-
-  .segmented__item {
-    padding: 3px 6px;
-    font-size: var(--size-micro);
-  }
-
   /*
    * Four tool tabs in 276px leaves 69px each; `Symbols` needed 72px and was being clipped to
    * `Symbol…`. Trimmed here rather than shortened further, so the label stays the accurate one.
@@ -1559,6 +1792,10 @@ select {
     flex: 1 1 100%;
   }
 
+  .stats__item:nth-child(2) {
+    border-left: 0;
+  }
+
   .brand__name {
     font-size: 16px;
   }
@@ -1568,12 +1805,11 @@ select {
   }
 
   .stats__item--lead .stats__value {
-    /* Smaller here so the group usually stays on one row at 320px; it wraps if it cannot. */
-    font-size: 27px;
+    font-size: 24px;
   }
 
   .stats__value {
-    font-size: 19px;
+    font-size: 24px;
   }
 
   .panel-body {

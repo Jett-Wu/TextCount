@@ -6,7 +6,7 @@
  * in the textarea — the document itself is never modified.
  */
 
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'preact/hooks';
 import { revealRange } from '../app/editor';
 import { appStore, getText, runFind, useStore, useTranslate } from '../app/state';
 import { contextAround, type MatchResult } from '../core/search';
@@ -16,16 +16,29 @@ const CONTEXT_RADIUS = 90;
 
 type SearchStatus = 'idle' | 'running' | 'done';
 
-export function SearchPanel() {
+export interface SearchSession {
+  terms: string[];
+  draft: string;
+  caseSensitive: boolean;
+  activeTerm: number;
+  activeMatch: number;
+}
+
+export function SearchPanel({ session }: { session: { current: SearchSession } }) {
   const t = useTranslate();
   const revision = useStore(appStore, (state) => state.revision);
-  const [terms, setTerms] = useState<string[]>([]);
-  const [draft, setDraft] = useState('');
-  const [caseSensitive, setCaseSensitive] = useState(true);
+  const [terms, setTerms] = useState(session.current.terms);
+  const [draft, setDraft] = useState(session.current.draft);
+  const [caseSensitive, setCaseSensitive] = useState(session.current.caseSensitive);
   const [results, setResults] = useState<MatchResult[]>([]);
   const [status, setStatus] = useState<SearchStatus>('idle');
-  const [activeTerm, setActiveTerm] = useState(0);
-  const [activeMatch, setActiveMatch] = useState(0);
+  const [activeTerm, setActiveTerm] = useState(session.current.activeTerm);
+  const [activeMatch, setActiveMatch] = useState(session.current.activeMatch);
+
+  // Keep only interaction state; remounting recomputes results for the current document revision.
+  useLayoutEffect(() => {
+    session.current = { terms, draft, caseSensitive, activeTerm, activeMatch };
+  }, [terms, draft, caseSensitive, activeTerm, activeMatch]);
 
   useEffect(() => {
     if (terms.length === 0) {
@@ -146,16 +159,11 @@ export function SearchPanel() {
         <span>{t('search.caseSensitive')}</span>
       </label>
 
-      {/*
-        The two matching rules are one piece of information, so they read as one group. Left as
-        separate panel children they inherited the panel's 24px rhythm and pushed the results down
-        by an extra 24px for no gain — the results were further from the query than the two
-        footnotes were from each other.
-      */}
-      <div class="help">
+      <details class="inline-help">
+        <summary>{t('help.title')}</summary>
         <p class="hint">{t('search.hint')}</p>
         <p class="hint">{t('search.overlapHint')}</p>
-      </div>
+      </details>
 
       {terms.length === 0 ? <p class="panel-empty">{t('search.empty')}</p> : null}
       {status === 'running' && terms.length > 0 ? (

@@ -16,7 +16,11 @@
     "check": "npm run typecheck && npm run test && vite build"
   },
   "dependencies": {
-    "preact": "^11.0.1"
+    "cfb": "1.2.2",
+    "fflate": "0.8.3",
+    "pdfjs-dist": "5.4.624",
+    "preact": "^11.0.1",
+    "saxes": "6.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",

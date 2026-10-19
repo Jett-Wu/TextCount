@@ -142,6 +142,9 @@ export function detectLocale(): LocaleId {
       if (typeof language !== 'string') continue;
       if (language.toLowerCase().startsWith('zh')) return 'zh-CN';
       if (language.toLowerCase().startsWith('en')) return 'en';
+      for (const supported of LOCALES) {
+        if (language.toLowerCase().split('-')[0] === supported) return supported;
+      }
     }
   } catch {
     /* no navigator: fall through */

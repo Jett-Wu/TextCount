@@ -9,6 +9,24 @@
 import type { Messages } from './zh-CN';
 
 export const en: Messages = {
+  "import.open": "Import file",
+  "import.hint": "Import PDF, DOCX or DOC (up to 50 MB)",
+  "import.close": "Close",
+  "import.loading": "Extracting text…",
+  "import.progress": "Extracting page {page} / {total}",
+  "import.cancel": "Cancel",
+  "import.replaceHint": "Ready to import. Replace the current text?",
+  "import.replace": "Replace text",
+  "import.note.pdf": "Text layer imported. Images are excluded; check the reading order.",
+  "import.note.docx": "Body and tables imported; headers, footnotes and comments excluded.",
+  "import.note.doc": "Body and tables imported. Older Word revisions may be included; review the text.",
+  "import.error.unsupported": "Choose a text PDF, DOCX or Word 97–2003 DOC file.",
+  "import.error.tooLarge": "File exceeds 50 MB or the extracted content is too large. Split it and retry.",
+  "import.error.invalid": "The file is damaged or its format is invalid.",
+  "import.error.encrypted": "Remove the password in the original application, then import again.",
+  "import.error.empty": "No extractable text found. Scanned documents need OCR first.",
+  "import.error.timeout": "Processing timed out. Try a smaller file.",
+  "import.error.cancelled": "Import cancelled.",
   'app.name': 'TextCount',
   'app.tagline': 'Local-first text counting',
   'tools.label': 'Inspection tools',
@@ -43,7 +61,7 @@ export const en: Messages = {
   'insights.view.paragraphs': 'Paragraphs',
   'insights.view.frequency': 'Frequency',
   'insights.view.cloud': 'Cloud',
-  'insights.empty': 'Paste or type text to see paragraph and frequency analysis here.',
+  'insights.empty': 'Enter text to analyse',
   'insights.running': 'Analysing…',
   'insights.paragraphs.count': 'Paragraphs',
   'insights.paragraphs.average': 'Average length',
@@ -59,9 +77,9 @@ export const en: Messages = {
   'insights.frequency.unit.character': 'Characters',
   'insights.frequency.filter': 'Filter common function words',
   'insights.frequency.engineNote':
-    'Segmentation comes from the browser; results for Chinese differ between engines and are not linguistic words. Word mode keeps terms of two characters or more — switch to Characters to see single characters.',
+    'Segmentation varies by browser; terms need at least two characters.',
   'insights.frequency.characterNote':
-    'Character frequency counts Han and kana only — no Latin letters, digits or punctuation.',
+    'Characters mode counts Han and kana only.',
   'insights.frequency.degraded':
     'This browser ships no Chinese dictionary for segmentation, so the word list is not reliable — it splits 工具 into single characters and merges unrelated ones. Switch to Characters for a sound result.',
   'insights.frequency.summary': '{tokens} units · {distinct} distinct',
@@ -71,7 +89,7 @@ export const en: Messages = {
   'insights.cloud.loading': 'Loading the word cloud…',
   'insights.cloud.placed': '{placed} of {total} words placed',
   'insights.cloud.note':
-    'Font size shows relative frequency, not an exact value. Click a word to reveal it in the text.',
+    'Size shows frequency. Click to locate.',
 
   'stats.summary': 'Summary',
   'stats.metric.han': 'Han characters',
@@ -109,7 +127,7 @@ export const en: Messages = {
     'Counts user-perceived characters (Unicode grapheme clusters) and excludes whitespace; an emoji, a flag or an accented letter counts once.',
 
   'editor.title': 'Text',
-  'editor.placeholder': 'Paste or type text to count it instantly',
+  'editor.placeholder': 'Type or paste here…',
   'editor.ariaLabel': 'Text input',
   'editor.clear': 'Clear',
   'editor.clearConfirm': 'Click again to clear',
@@ -125,12 +143,12 @@ export const en: Messages = {
   'editor.degradedNotice':
     'Background counting is unavailable in this browser, so very long texts may pause briefly while counting. Results are still complete.',
 
-  'search.placeholder': 'Type a character, word or phrase',
-  'search.add': 'Add target',
+  'search.placeholder': 'Find…',
+  'search.add': 'Add',
   'search.caseSensitive': 'Match case',
   'search.hint': 'Matched literally against the original text: "," never matches "，".',
   'search.overlapHint': 'Non-overlapping: "aa" occurs twice in "aaaa".',
-  'search.empty': 'Type something to find. Add several targets to check them at once.',
+  'search.empty': 'Find several terms at once',
   'search.running': 'Searching…',
   'search.remove': 'Remove',
   'search.locate': 'Locate',
@@ -146,7 +164,7 @@ export const en: Messages = {
 
   'symbols.loading': 'Checking…',
   'symbols.empty': 'No punctuation found in this text.',
-  'symbols.emptyText': 'Enter some text to check full-width/half-width and punctuation usage.',
+  'symbols.emptyText': 'Enter text to check symbols',
   'symbols.categories': 'By category',
   'symbols.related': 'Related forms',
   'symbols.mixedBadge': 'More than one form',
@@ -154,7 +172,7 @@ export const en: Messages = {
   'symbols.distinct': '{n} kinds',
   'symbols.locate': 'Locate',
   'symbols.note':
-    'This only reports that more than one form exists — it is not an error. Mixing forms is often correct in mixed Chinese/English text; judge against your own style guide.',
+    'Mixed forms are not necessarily errors.',
   'symbols.total': 'Total marks',
   'symbols.category.ascii': 'ASCII punctuation',
   'symbols.category.fullwidth': 'Full-width punctuation',
@@ -194,4 +212,8 @@ export const en: Messages = {
   'symbols.group.corner-bracket': 'Corner brackets',
   'symbols.group.book-title': 'Title marks',
   'symbols.group.lenticular': 'Lenticular brackets',
+  'headline.paragraphs': 'Paragraphs',
+  'stats.more': 'More counts',
+  'stats.rules.definition': 'Counting definition',
+  'help.title': 'Details',
 };

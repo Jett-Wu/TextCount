@@ -17,7 +17,12 @@ async function setText(page: Page, text: string): Promise<void> {
   }, text);
 }
 
-/** Reads the three headline numbers in DOM order: primary, characters, characters w/o spaces. */
+async function chooseLocale(page: Page, locale: string): Promise<void> {
+  await page.locator('[data-control="locale"]').click();
+  await page.locator(`[role="menuitemradio"][data-locale="${locale}"]`).click();
+}
+
+/** Headline: selected count, characters including whitespace, paragraphs. */
 async function headline(page: Page): Promise<string[]> {
   return page.locator('.stats__item .stats__value').allTextContents();
 }
@@ -72,7 +77,7 @@ test.describe('shell and privacy boundary', () => {
     expect(await headline(page)).toEqual(['0', '0', '0']);
 
     await setText(page, '你好 AI 2026');
-    expect(await headline(page)).toEqual(['4', '10', '8']);
+    expect(await headline(page)).toEqual(['4', '10', '1']);
 
     const rows = await metrics(page);
     expect(rows['Han characters']).toBe('2');
@@ -80,6 +85,7 @@ test.describe('shell and privacy boundary', () => {
     expect(rows['Number runs']).toBe('1');
     expect(rows['Punctuation marks']).toBe('0');
     expect(rows['UTF-16 length']).toBe('10');
+    expect(rows['Characters without spaces']).toBe('8');
   });
 
   test('does not persist the text anywhere', async ({ page }) => {
@@ -132,6 +138,26 @@ test.describe('counting rules', () => {
 });
 
 test.describe('find and multi-target checking', () => {
+  test('keeps search inputs across tools and recomputes after the text changes', async ({ page }) => {
+    await page.goto('/');
+    await setText(page, 'hello hello Hello');
+    await page.locator('#textcount-tab-search').click();
+    await page.locator('.search-form .input').fill('hello');
+    await page.locator('.search-form .btn--primary').click();
+    await page.getByLabel('Match case').uncheck();
+    await expect(page.locator('.term__count')).toHaveText('3 matches');
+    await page.locator('.search-form .input').fill('unfinished draft');
+    await page.locator('#textcount-tab-stats').click();
+    await setText(page, 'Hello');
+    await page.locator('#textcount-tab-search').click();
+    await expect(page.locator('.search-form .input')).toHaveValue('unfinished draft');
+    await expect(page.getByLabel('Match case')).not.toBeChecked();
+    await expect(page.locator('.term__count')).toHaveText('1 match');
+    await page.reload();
+    await page.locator('#textcount-tab-search').click();
+    await expect(page.locator('[data-testid="search-term"]')).toHaveCount(0);
+    await expect(page.locator('.search-form .input')).toHaveValue('');
+  });
   test('counts non-overlapping matches of a repeated term', async ({ page }) => {
     await page.goto('/');
     await setText(page, 'aaaa');
@@ -258,6 +284,55 @@ test.describe('full-width / half-width inspection', () => {
 });
 
 test.describe('interface language', () => {
+  test('language menu supports arrows, Escape, Tab and outside dismissal', async ({ page }) => {
+    await page.goto('/');
+    const trigger = page.locator('[data-control="locale"]');
+    await trigger.focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(page.getByRole('menuitemradio', { name: 'English', exact: true })).toBeFocused();
+    await page.keyboard.press('End');
+    await expect(page.getByRole('menuitemradio', { name: 'Français', exact: true })).toBeFocused();
+    await page.keyboard.press('Home');
+    await expect(page.getByRole('menuitemradio', { name: '中文', exact: true })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(trigger).toBeFocused();
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    await trigger.click();
+    await page.keyboard.press('Tab');
+    await expect(page.locator('[data-control="theme"]')).toBeFocused();
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    await trigger.click();
+    await page.locator(EDITOR).click();
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    await expect(page.locator(EDITOR)).toBeFocused();
+    await trigger.click();
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
+    await expect(trigger).toBeFocused();
+  });
+
+  test('supports every language without changing text, selection or counts', async ({ page }) => {
+    await page.goto('/');
+    await setText(page, '你好 AI 2026');
+    await page.locator(EDITOR).evaluate((element) => {
+      (element as HTMLTextAreaElement).setSelectionRange(3, 5);
+    });
+    for (const locale of ['ja', 'es', 'fr', 'zh-CN', 'en']) {
+      await chooseLocale(page, locale);
+      await expect(page.locator('html')).toHaveAttribute('lang', locale);
+      expect(await headline(page)).toEqual(['4', '10', '1']);
+      expect(await page.locator(EDITOR).evaluate((element) => {
+        const textarea = element as HTMLTextAreaElement;
+        return textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
+      })).toBe('AI');
+      await expect(page.locator(EDITOR)).toHaveValue('你好 AI 2026');
+    }
+    const link = page.getByRole('link', { name: 'GitHub' });
+    await expect(link).toHaveAttribute('href', 'https://github.com/Jett-Wu');
+    await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
   test('switches language without losing the text or the selection', async ({ page }) => {
     await page.goto('/');
     await setText(page, '你好 AI 2026');
@@ -268,9 +343,9 @@ test.describe('interface language', () => {
       textarea.setSelectionRange(3, 5);
     });
 
-    await page.locator('.segmented[data-control="locale"] .segmented__item').nth(0).click();
+    await chooseLocale(page, 'zh-CN');
 
-    await expect(page.locator('.stats__item--lead .stats__label')).toHaveText('字数');
+    await expect(page.locator('.stats__item--lead .stats__label')).toHaveText('字词');
     await expect(page.locator('#textcount-tab-search')).toHaveText('查找');
     await expect(page).toHaveTitle(/TextCount/);
     await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN');
@@ -290,7 +365,7 @@ test.describe('interface language', () => {
     await page.goto('/');
     await setText(page, '你好');
 
-    await page.locator('.segmented[data-control="locale"] .segmented__item').nth(1).click();
+    await chooseLocale(page, 'en');
     await expect(page.locator('#textcount-tab-search')).toHaveText('Find');
 
     const overflow = await page.evaluate(
@@ -302,6 +377,26 @@ test.describe('interface language', () => {
 });
 
 test.describe('theme', () => {
+  test('cycles in one click and follows system changes after a full cycle', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.goto('/');
+    const toggle = page.locator('[data-control="theme"]');
+    await expect(toggle).toHaveAttribute('data-theme-preference', 'system');
+    for (const preference of ['light', 'dark', 'system']) {
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('data-theme-preference', preference);
+    }
+    await expect(page.locator('html')).not.toHaveAttribute('data-theme');
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(28, 28, 29)');
+    await page.emulateMedia({ colorScheme: 'light' });
+    await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(247, 247, 249)');
+    await toggle.click();
+    await page.reload();
+    await expect(toggle).toHaveAttribute('data-theme-preference', 'light');
+    await expect(page.locator('select')).toHaveCount(0);
+  });
+
   test('switching theme repaints, and keeps the text and the selection', async ({ page }) => {
     await page.goto('/');
     await setText(page, '你好 AI 2026');
@@ -311,13 +406,17 @@ test.describe('theme', () => {
       textarea.setSelectionRange(3, 5);
     });
 
-    const themeSwitch = page.locator('.segmented[data-control="theme"] .segmented__item');
-    await themeSwitch.nth(2).click(); // dark
+    const themeSwitch = page.locator('[data-control="theme"]');
+    await themeSwitch.click(); // system → light
+    await themeSwitch.click(); // light → dark
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(28, 28, 29)');
     const darkBackground = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
 
-    await themeSwitch.nth(1).click(); // light
+    await themeSwitch.click(); // dark → system
+    await themeSwitch.click(); // system → light
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(247, 247, 249)');
     const lightBackground = await page.evaluate(
       () => getComputedStyle(document.body).backgroundColor,
     );
@@ -380,7 +479,8 @@ test.describe('long text', () => {
 
     // Exact counts: no truncation, no sampling.
     // 20,000 units of `汉字abc123，。` → mixed = 20,000 x (2 Han + 1 word + 1 digit run) = 80,000.
-    expect(result.headlineValues).toEqual(['80,000', '200,000', '200,000']);
+    expect(result.headlineValues).toEqual(['80,000', '200,000', '1']);
+    expect(result.rows['Characters without spaces']).toBe('200,000');
     expect(result.rows['Han characters']).toBe('40,000');
     expect(result.rows['Punctuation marks']).toBe('40,000');
     expect(result.rows['UTF-16 length']).toBe('200,000');
@@ -399,17 +499,62 @@ test.describe('long text', () => {
 });
 
 test.describe('accessibility basics', () => {
+  test('reverses a closing rules menu and restores keyboard access immediately', async ({ page }) => {
+    await page.goto('/');
+    const trigger = page.getByRole('button', { name: 'Counting rules' });
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await trigger.click();
+      await expect(page.getByRole('radio').first()).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+      await trigger.evaluate((button) => (button as HTMLButtonElement).click());
+      await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+      await expect(page.locator('#textcount-rules')).not.toHaveAttribute('inert');
+      await trigger.focus();
+      await expect(trigger).toBeFocused();
+      await page.keyboard.press('Tab');
+      await expect(page.locator('input[name="primary-metric"][value="mixed"]')).toBeFocused();
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('radio')).toHaveCount(0);
+      await trigger.focus();
+      await page.keyboard.press('Tab');
+      expect(await page.evaluate(() => document.activeElement?.closest('#textcount-rules') !== null)).toBe(false);
+    }
+  });
+
+  test('rapid keyboard navigation keeps the document and ends at the latest tab', async ({ page }) => {
+    await page.goto('/');
+    await setText(page, '你好 AI 2026');
+    await page.locator(EDITOR).evaluate((element) => {
+      const textarea = element as HTMLTextAreaElement;
+      textarea.setSelectionRange(3, 5);
+    });
+    const editor = await page.locator(EDITOR).elementHandle();
+    await page.locator('#textcount-tab-stats').focus();
+    for (let step = 0; step < 7; step++) await page.keyboard.press('ArrowRight');
+    await expect(page.locator('#textcount-tab-insights')).toBeFocused();
+    await expect(page.locator('#textcount-tab-insights')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('[data-testid="panel-insights"]')).toBeVisible();
+    expect(await editor!.evaluate((element) => {
+      const textarea = element as HTMLTextAreaElement;
+      return { connected: textarea.isConnected, text: textarea.value,
+        selection: textarea.value.slice(textarea.selectionStart, textarea.selectionEnd) };
+    })).toEqual({ connected: true, text: '你好 AI 2026', selection: 'AI' });
+  });
+
   test('exposes tabs, a labelled editor and a rules menu that closes on Escape', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator(EDITOR)).toHaveAttribute('aria-label', 'Text input');
     await expect(page.locator('#textcount-tab-stats')).toHaveAttribute('aria-selected', 'true');
 
     const rules = page.locator('.rules');
-    await expect(rules).toHaveCount(0);
+    await expect(rules).not.toBeVisible();
+    await expect(page.getByRole('radio')).toHaveCount(0);
     await page.getByRole('button', { name: 'Counting rules' }).click();
     await expect(rules).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(rules).toHaveCount(0);
+    await expect(rules).not.toBeVisible();
+    await expect(page.getByRole('radio')).toHaveCount(0);
   });
 
   test('moves between tool tabs with the keyboard', async ({ page }) => {
@@ -424,6 +569,12 @@ test.describe('accessibility basics', () => {
     // Wraps around to the first tool.
     await page.keyboard.press('ArrowRight');
     await expect(page.locator('#textcount-tab-stats')).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('End');
+    await expect(page.locator('#textcount-tab-insights')).toBeFocused();
+    await expect(page.locator('#textcount-tab-insights')).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('Home');
+    await expect(page.locator('#textcount-tab-stats')).toBeFocused();
+    await expect(page.locator('#textcount-tab-stats')).toHaveAttribute('aria-selected', 'true');
   });
 });
 
@@ -432,6 +583,23 @@ test.describe('accessibility basics', () => {
  * silent: nothing errors, the page just overflows or pushes the tools below the fold.
  */
 test.describe('insights', () => {
+  test('remembers the analysis view and options when returning from another tool', async ({ page }) => {
+    await page.goto('/');
+    await setText(page, '文字文字 hello hello');
+    await page.locator('#textcount-tab-insights').click();
+    await page.locator('[data-testid="insights-views"]').getByRole('button', { name: 'Frequency' }).click();
+    await page.getByLabel('Filter common function words').uncheck();
+    await page.locator('[data-testid="insights-unit"]').getByRole('button', { name: 'Characters' }).click();
+    await page.locator('#textcount-tab-stats').click();
+    await setText(page, '字字');
+    await page.locator('#textcount-tab-insights').click();
+    await expect(page.locator('[data-testid="insights-views"]').getByRole('button', { name: 'Frequency' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('[data-testid="insights-unit"]').getByRole('button', { name: 'Characters' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.bars__term')).toHaveText(['字']);
+    await expect(page.locator('.bars__value')).toHaveText(['2']);
+    await page.locator('[data-testid="insights-unit"]').getByRole('button', { name: 'Words', exact: true }).click();
+    await expect(page.getByLabel('Filter common function words')).not.toBeChecked();
+  });
   const MULTI = [
     '第一段很短。',
     '',
@@ -651,7 +819,57 @@ test.describe('insights', () => {
 });
 
 test.describe('layout stability', () => {
+  test('aligns the workspace toolbar dividers with a mouse and touch pointer', async ({ browser, baseURL }) => {
+    for (const touch of [false, true]) {
+      const context = await browser.newContext({ hasTouch: touch, baseURL: baseURL! });
+      const page = await context.newPage();
+      for (const viewport of [{ width: 1440, height: 900 }, { width: 844, height: 390 }]) {
+        await page.setViewportSize(viewport);
+        await page.goto('/');
+        for (const tool of ['stats', 'search', 'symbols', 'insights']) {
+          await page.locator(`#textcount-tab-${tool}`).click();
+          const geometry = await page.evaluate(() => {
+            const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
+            const left = rect('.editor__head');
+            const right = rect('.tools__head');
+            const tabs = rect('.tools__head .switcher');
+            const editor = rect('.editor');
+            const tools = rect('.tools');
+            return { left: left.bottom, right: right.bottom, difference: tools.left - editor.right,
+              clipped: tabs.top < right.top || tabs.bottom > right.bottom };
+          });
+          expect(Math.abs(geometry.left - geometry.right)).toBeLessThan(0.5);
+          expect(Math.abs(geometry.difference)).toBeLessThan(0.5);
+          expect(geometry.clipped).toBe(false);
+        }
+      }
+      await context.close();
+    }
+  });
   const SMALL = '你好。世界。\n\nSecond paragraph.';
+
+  test('keeps the panel viewport stable while scrollbars appear and tabs change', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 760 });
+    await page.goto('/');
+    await setText(page, '检查（示例）与 (test)：冒号:，逗号,；分号;。句点. !！?？'.repeat(40));
+    const frames = await page.evaluate(async () => {
+      const widths: number[] = [];
+      const editor = document.querySelector('textarea')!;
+      const positions: number[] = [];
+      for (const tool of ['symbols', 'search', 'insights', 'stats', 'symbols']) {
+        (document.querySelector(`#textcount-tab-${tool}`) as HTMLButtonElement).click();
+        for (let frame = 0; frame < 20; frame++) {
+          await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+          widths.push(document.querySelector('.tools__panel')!.clientWidth);
+          positions.push(editor.getBoundingClientRect().width);
+        }
+      }
+      return { widths, positions };
+    });
+    expect(new Set(frames.widths).size).toBe(1);
+    expect(new Set(frames.positions).size).toBe(1);
+    await expect(page.locator('.editor__note')).toHaveCount(0);
+  });
 
   /*
    * The editor must not move when a side panel is opened. It used to: the insights tool took a
@@ -679,10 +897,10 @@ test.describe('layout stability', () => {
    * and was rendering as `Punctuat…`; no horizontal overflow was reported anywhere, which is why
    * "the page does not scroll sideways" is not evidence that a responsive layout works.
    */
-  for (const locale of ['zh-CN', 'en'] as const) {
-    test(`fits every tool tab at 320px and 390px (${locale})`, async ({ page }) => {
-      for (const width of [320, 390]) {
-        await page.setViewportSize({ width, height: 720 });
+  for (const locale of ['zh-CN', 'en', 'ja', 'es', 'fr'] as const) {
+    test(`fits every tool tab on phones and short landscape screens (${locale})`, async ({ page }) => {
+      for (const width of [320, 390, 640, 844]) {
+        await page.setViewportSize({ width, height: width >= 600 ? 390 : 720 });
         await page.goto('/');
         await page.evaluate((value) => localStorage.setItem('textcount.locale', value), locale);
         await page.reload();
@@ -702,15 +920,45 @@ test.describe('layout stability', () => {
    * The rule value says which rule the headline number was counted under, so it must never be
    * shortened. It used to carry `overflow: hidden` and an ellipsis.
    */
-  test('never shortens the active counting rule', async ({ page }) => {
+  test('shows the complete counting definition on demand', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 720 });
     await page.goto('/');
     await page.locator('#textcount-tab-stats').click();
-    const value = page.locator('.rule-trigger__value');
+    await page.locator('.rule-trigger').click();
+    const value = page.locator('.rules__explain');
+    await expect(value).not.toBeVisible();
+    const definition = page.locator('.rules__details > summary');
+    await expect(definition).toBeVisible();
+    await definition.focus();
+    await expect(definition).toBeFocused();
+    await page.keyboard.press('Enter');
     await expect(value).toBeVisible();
+    await page.locator('input[value="han"]').check();
+    await expect(value).toContainText('Unicode');
     const clipped = await value.evaluate((node) => node.scrollWidth > node.clientWidth + 1);
     expect(clipped).toBe(false);
     await expect(value).toHaveText(/\S/);
+  });
+
+  test('distributes summary figures and analysis views evenly', async ({ page }) => {
+    for (const width of [390, 844, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/');
+      const centers = await page.locator('.stats').evaluate((node) => {
+        const box = node.getBoundingClientRect();
+        return [...node.querySelectorAll('.stats__value')].map(value => {
+          const rect = value.getBoundingClientRect();
+          return (rect.left + rect.width / 2 - box.left) / box.width;
+        });
+      });
+      for (let i = 0; i < 3; i++) expect(centers[i]).toBeCloseTo((i + 0.5) / 3, 2);
+      await page.locator('#textcount-tab-insights').click();
+      const widths = await page.locator('[data-testid="insights-views"] button').evaluateAll(
+        nodes => nodes.map(node => node.getBoundingClientRect().width),
+      );
+      expect(widths).toHaveLength(3);
+      expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(1);
+    }
   });
 
   /* A seven-digit count is nine characters once the thousands separators are in. */
@@ -740,10 +988,15 @@ test.describe('responsive layout', () => {
     { name: 'small phone', width: 320, height: 568 },
     { name: 'phone', width: 390, height: 844 },
     { name: 'phone landscape', width: 844, height: 390 },
+    { name: 'small phone landscape', width: 640, height: 360 },
     { name: 'tablet portrait', width: 834, height: 1194 },
     { name: 'tablet landscape', width: 1024, height: 768 },
     { name: 'laptop', width: 1366, height: 768 },
     { name: 'desktop', width: 1920, height: 1080 },
+    { name: '2K desktop', width: 2560, height: 1440 },
+    { name: 'scaled 2K desktop', width: 1707, height: 960 },
+    { name: 'ultrawide desktop', width: 3440, height: 1440 },
+    { name: '4K desktop', width: 3840, height: 2160 },
   ];
 
   for (const viewport of VIEWPORTS) {
@@ -776,6 +1029,9 @@ test.describe('responsive layout', () => {
           editor: rect('.editor')!,
           tools: rect('.tools')!,
           toolbar: rect('.topbar')!,
+          app: rect('.app')!,
+          workspace: rect('.workspace')!,
+          inputFontSize: Number.parseFloat(getComputedStyle(document.querySelector('textarea')!).fontSize),
           valueBottoms,
         };
       });
@@ -788,10 +1044,21 @@ test.describe('responsive layout', () => {
       // The two secondary figures always share one baseline: they stay in the same row even when
       // the primary count moves to a row of its own on a narrow screen.
       expect(new Set(layout.valueBottoms.slice(1)).size).toBe(1);
-      // The headline count is the largest of the three at every size.
-      expect(layout.primaryFontSize).toBeGreaterThan(layout.secondaryFontSize);
+      // Equal sizes keep the three figures balanced; weight and color identify the primary count.
+      expect(layout.primaryFontSize).toBe(layout.secondaryFontSize);
       // The header must not eat the screen on a small phone.
       expect(layout.toolbar.height).toBeLessThan(viewport.height * 0.25);
+      if (viewport.width >= 1200) {
+        // "No overflow" also passed when a 1520×920 island floated in the middle of a 2K display.
+        expect(layout.app.top).toBeLessThan(1);
+        expect(Math.abs(layout.app.height - viewport.height)).toBeLessThan(1);
+        expect(layout.workspace.width / viewport.width).toBeGreaterThan(0.9);
+        expect(viewport.height - layout.workspace.bottom).toBeLessThanOrEqual(65);
+        expect(layout.workspace.height / viewport.height).toBeGreaterThan(0.7);
+        expect(layout.inputFontSize).toBeGreaterThanOrEqual(16);
+        expect(layout.inputFontSize).toBeLessThanOrEqual(18);
+        expect(layout.primaryFontSize).toBeLessThanOrEqual(32);
+      }
     });
   }
 });

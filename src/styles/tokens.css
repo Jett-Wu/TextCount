@@ -13,39 +13,41 @@
   color-scheme: light;
 
   /* Surfaces — page, card, hover, pressed */
-  --bg: #f8f9fb;
+  --bg: #f7f7f9;
   --surface: #ffffff;
-  --surface-hover: #f0f2f5;
-  --surface-sunken: #eef1f6;
-  --border: #e4e7ec;
-  --border-strong: #d2d7e0;
+  --surface-panel: #f9f9fb;
+  --surface-hover: #f0f0f3;
+  --surface-sunken: #eeeef2;
+  --border: #e3e4e9;
+  --border-strong: #cdd0d9;
 
   /* Text */
-  --text: #171b24;
-  --text-muted: #626b78;
+  --text: #25262c;
+  --text-muted: #656872;
   /*
    * There is deliberately no third, fainter text colour. One existed and every use of it was
    * tested: at 13px it measured 2.94:1 on the page and 3.09:1 on a card, so the qualifier that
    * defines what a number means, the privacy note and the symbol code points were all below the
-   * 4.5:1 floor. Anything that carries meaning uses `--text-muted` (5.1:1 light, 7.6:1 dark);
+   * 4.5:1 floor. Anything that carries meaning uses `--text-muted` with at least 4.5:1 contrast on its surface;
    * disabled controls are dimmed with opacity instead, which is not a text colour.
    */
 
-  /* Accent — used for the active tool, focus, and the primary number only */
-  --accent: #5b6fb5;
-  --accent-strong: #4a5c9c;
-  --accent-soft: rgba(91, 111, 181, 0.14);
-  --accent-wash: rgba(91, 111, 181, 0.06);
+  /* Accent stays on selection and interaction; large surfaces remain neutral. */
+  --accent: #6559b8;
+  --accent-strong: #54489f;
+  --accent-soft: rgba(101, 89, 184, 0.10);
+  --accent-wash: rgba(101, 89, 184, 0.045);
   --on-accent: #ffffff;
 
   /* States */
-  --warn: #96652c;
-  --warn-soft: rgba(150, 101, 44, 0.12);
+  --warn: #875b29;
+  --warn-soft: rgba(135, 91, 41, 0.10);
   --mark-bg: #ffe9a3;
   --mark-text: #3b2d00;
 
   /* Elevation — deliberately barely visible */
   --shadow-sm: 0 1px 2px rgba(16, 20, 30, 0.04);
+  --shadow-card: 0 2px 8px rgba(16, 20, 30, 0.025);
 
   /* Radius */
   --radius-xs: 6px;
@@ -63,15 +65,15 @@
   --space-6: 32px;
 
   /* Layout */
-  --content-max: 1360px;
-  --gutter: 32px;
+  --gutter: clamp(24px, 2.5vw, 64px);
   /*
    * One width for every tool. A wider column for the insights tool was tried and reverted: it
    * narrowed the editor by 92px whenever that tab was opened, so the whole document re-wrapped and
    * the reader lost their place — the opposite of what a side panel is for. The cloud is laid out
    * for whatever width it is given and reports how many words it could place.
    */
-  --sidebar-width: 392px;
+  --sidebar-width: clamp(360px, 23vw, 480px);
+  --workspace-bar-height: 56px;
   --col-gap: 24px;
 
   /* Type — one scale, used consistently */
@@ -80,19 +82,18 @@
     'Microsoft YaHei', 'Noto Sans CJK SC', system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
-  --size-display: 44px; /* the headline count */
-  --size-stat: 30px; /* the two secondary counts */
-  --size-title: 17px; /* brand wordmark */
-  --size-panel: 16px; /* panel heading */
-  --size-body: 16px; /* body and the text input */
-  --size-control: 14px; /* buttons, tabs, list rows */
-  --size-meta: 13px; /* labels */
+  /* Bounded growth keeps high-resolution desktops readable without scaling the entire UI. */
+  --size-stat: clamp(28px, 0.5vw + 21px, 32px);
+  --size-title: clamp(17px, 0.125vw + 15px, 19px);
+  --size-body: clamp(16px, 0.25vw + 12px, 18px);
+  --size-control: clamp(14px, 0.125vw + 12px, 15px);
+  --size-meta: clamp(13px, 0.125vw + 11px, 14px);
   --size-micro: 12px; /* the only place small text is allowed */
 
   /* Motion — short, interruptible, never on text input */
   --dur-tap: 140ms;
-  --dur-tab: 200ms;
-  --dur-panel: 240ms;
+  --dur-tab: 220ms;
+  --dur-panel: 280ms;
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
@@ -100,20 +101,21 @@
   :root:not([data-theme='light']) {
     color-scheme: dark;
 
-    --bg: #111318;
-    --surface: #1b1e25;
-    --surface-hover: #252a34;
-    --surface-sunken: #16191f;
-    --border: #303642;
-    --border-strong: #3f4653;
+    --bg: #1c1c1d;
+    --surface: #242528;
+    --surface-panel: #27282c;
+    --surface-hover: #303137;
+    --surface-sunken: #202124;
+    --border: #35373e;
+    --border-strong: #535660;
 
-    --text: #f3f4f6;
-    --text-muted: #a8b0be;
+    --text: #e7e8ec;
+    --text-muted: #a9adb8;
 
-    --accent: #8fa0dd;
-    --accent-strong: #a6b4e8;
-    --accent-soft: rgba(143, 160, 221, 0.18);
-    --accent-wash: rgba(143, 160, 221, 0.07);
+    --accent: #9daff0;
+    --accent-strong: #bdc9ff;
+    --accent-soft: rgba(157, 175, 240, 0.14);
+    --accent-wash: rgba(157, 175, 240, 0.055);
     --on-accent: #14161b;
 
     --warn: #cfa268;
@@ -122,26 +124,28 @@
     --mark-text: #ffeeb8;
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.12);
   }
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --bg: #111318;
-  --surface: #1b1e25;
-  --surface-hover: #252a34;
-  --surface-sunken: #16191f;
-  --border: #303642;
-  --border-strong: #3f4653;
+  --bg: #1c1c1d;
+  --surface: #242528;
+  --surface-panel: #27282c;
+  --surface-hover: #303137;
+  --surface-sunken: #202124;
+  --border: #35373e;
+  --border-strong: #535660;
 
-  --text: #f3f4f6;
-  --text-muted: #a8b0be;
+  --text: #e7e8ec;
+  --text-muted: #a9adb8;
 
-  --accent: #8fa0dd;
-  --accent-strong: #a6b4e8;
-  --accent-soft: rgba(143, 160, 221, 0.18);
-  --accent-wash: rgba(143, 160, 221, 0.07);
+  --accent: #9daff0;
+  --accent-strong: #bdc9ff;
+  --accent-soft: rgba(157, 175, 240, 0.14);
+  --accent-wash: rgba(157, 175, 240, 0.055);
   --on-accent: #14161b;
 
   --warn: #cfa268;
@@ -150,6 +154,7 @@
   --mark-text: #ffeeb8;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 :root[data-theme='light'] {
