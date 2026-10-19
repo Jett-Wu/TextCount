@@ -6,9 +6,12 @@
  * because mixing is often correct in mixed Chinese/English text.
  */
 
+import { Fragment } from 'preact';
+import type { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
-import { locateFirst } from '../app/editor';
+import { findTermMatches, revealRange } from '../app/editor';
 import { appStore, runSymbols, useStore, useTranslate } from '../app/state';
+import type { MatchResult } from '../core/search';
 import type { SymbolReport } from '../core/symbols';
 import type { MessageKey } from '../locales';
 
@@ -52,14 +55,31 @@ const GROUP_LABELS: Record<string, MessageKey> = {
 
 type InspectorStatus = 'idle' | 'running' | 'done';
 
+/**
+ * A symbol the reader is walking through. The offsets belong to one revision of the text, so the
+ * whole state is dropped when the document changes rather than being re-validated.
+ *
+ * `key` identifies the chip that was clicked, not just the character: the same symbol can appear in
+ * both the related-forms group and the category list, and keying on the character alone highlighted
+ * both and rendered two navigators for one symbol.
+ */
+interface ActiveSymbol {
+  key: string;
+  char: string;
+  index: number;
+  matches: MatchResult;
+}
+
 export function InspectorPanel() {
   const t = useTranslate();
   const revision = useStore(appStore, (state) => state.revision);
   const textLength = useStore(appStore, (state) => state.textLength);
   const [report, setReport] = useState<SymbolReport | null>(null);
   const [status, setStatus] = useState<InspectorStatus>('idle');
+  const [active, setActive] = useState<ActiveSymbol | null>(null);
 
   useEffect(() => {
+    setActive(null);
     if (textLength === 0) {
       setReport(null);
       setStatus('idle');
@@ -88,6 +108,61 @@ export function InspectorPanel() {
       </div>
     );
   }
+
+  const reveal = (matches: MatchResult, index: number): void => {
+    const start = matches.positions[index];
+    if (start === undefined) return;
+    revealRange(start, start + (matches.lengths[index] ?? 1));
+  };
+
+  const locate = (key: string, char: string): void => {
+    const matches = findTermMatches(char);
+    if (matches.positions.length === 0) return;
+    reveal(matches, 0);
+    setActive({ key, char, index: 0, matches });
+  };
+
+  const step = (delta: number): void => {
+    if (active === null) return;
+    const total = active.matches.positions.length;
+    if (total === 0) return;
+    const index = (active.index + delta + total) % total;
+    reveal(active.matches, index);
+    setActive({ ...active, index });
+  };
+
+  /*
+   * Rendered next to the active chip rather than inside it: a button cannot contain buttons, and
+   * keeping the navigator as a sibling lets it wrap with the chip on narrow panels.
+   */
+  const navigation = (): JSX.Element | null => {
+    if (active === null) return null;
+    const total = active.matches.positions.length;
+    if (total <= 1) return null;
+    return (
+      <span class="chip-nav">
+        <button type="button" class="btn btn--icon" onClick={() => step(-1)} aria-label={t('search.prev')}>
+          ‹
+        </button>
+        <span
+          class="chip-nav__position"
+          /* Machine-readable position so tests do not depend on a translated sentence. */
+          data-index={active.index + 1}
+          data-total={total}
+          title={
+            active.matches.truncated
+              ? t('search.truncated', { kept: total, total: active.matches.count })
+              : ''
+          }
+        >
+          {t('search.position', { index: active.index + 1, total })}
+        </span>
+        <button type="button" class="btn btn--icon" onClick={() => step(1)} aria-label={t('search.next')}>
+          ›
+        </button>
+      </span>
+    );
+  };
 
   if (report === null) {
     return (
@@ -129,21 +204,27 @@ export function InspectorPanel() {
                   <div class="group__members">
                     {group.members
                       .filter((member) => member.count > 0)
-                      .map((member) => (
-                        <button
-                          type="button"
-                          class="chip"
-                          key={member.codePoint}
-                          title={`${member.codePoint} · ${t('symbols.locate')}`}
-                          onClick={() => locateFirst(member.char)}
-                        >
-                          <span class="chip__char">{member.char}</span>
-                          {/* 。/．/. are nearly indistinguishable at chip size, so the code
-                              point is shown inline exactly where the ambiguity exists. */}
-                          {group.mixed ? <span class="chip__code">{member.codePoint}</span> : null}
-                          <span class="chip__count">{member.count}</span>
-                        </button>
-                      ))}
+                      .map((member) => {
+                        const chipKey = `group:${group.id}:${member.codePoint}`;
+                        const isActive = active?.key === chipKey;
+                        return (
+                          <Fragment key={member.codePoint}>
+                            <button
+                              type="button"
+                              class={isActive ? 'chip chip--active' : 'chip'}
+                              title={`${member.codePoint} · ${t('symbols.locate')}`}
+                              onClick={() => locate(chipKey, member.char)}
+                            >
+                              <span class="chip__char">{member.char}</span>
+                              {/* 。/．/. are nearly indistinguishable at chip size, so the code
+                                  point is shown inline exactly where the ambiguity exists. */}
+                              {group.mixed ? <span class="chip__code">{member.codePoint}</span> : null}
+                              <span class="chip__count">{member.count}</span>
+                            </button>
+                            {isActive ? navigation() : null}
+                          </Fragment>
+                        );
+                      })}
                   </div>
                 </li>
               );
@@ -164,19 +245,25 @@ export function InspectorPanel() {
               </span>
             </div>
             <div class="sym-cat__entries">
-              {category.entries.map((entry) => (
-                <button
-                  type="button"
-                  class="sym"
-                  key={entry.codePoint}
-                  title={`${entry.codePoint} · ${t('symbols.locate')}`}
-                  onClick={() => locateFirst(entry.char)}
-                >
-                  <span class="sym__char">{entry.char}</span>
-                  <span class="sym__code">{entry.codePoint}</span>
-                  <span class="sym__count">{entry.count}</span>
-                </button>
-              ))}
+              {category.entries.map((entry) => {
+                const chipKey = `cat:${category.id}:${entry.codePoint}`;
+                const isActive = active?.key === chipKey;
+                return (
+                  <Fragment key={entry.codePoint}>
+                    <button
+                      type="button"
+                      class={isActive ? 'sym sym--active' : 'sym'}
+                      title={`${entry.codePoint} · ${t('symbols.locate')}`}
+                      onClick={() => locate(chipKey, entry.char)}
+                    >
+                      <span class="sym__char">{entry.char}</span>
+                      <span class="sym__code">{entry.codePoint}</span>
+                      <span class="sym__count">{entry.count}</span>
+                    </button>
+                    {isActive ? navigation() : null}
+                  </Fragment>
+                );
+              })}
             </div>
           </section>
         ))}

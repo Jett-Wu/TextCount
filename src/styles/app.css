@@ -1256,6 +1256,30 @@ select {
   background: var(--accent-wash);
 }
 
+/* The chip whose occurrences are being walked through, and its navigator. */
+.chip--active,
+.sym--active {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+
+/*
+ * Sits beside the active chip inside the wrapping flex row, not inside the button: a button cannot
+ * contain buttons, and as a sibling it wraps to the next line with its chip on a narrow panel.
+ */
+.chip-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.chip-nav__position {
+  font-size: var(--size-meta);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .chip__char,
 .sym__char {
   /* The glyph is the point of the chip, so it leads: code point and count sit below it. */

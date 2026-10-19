@@ -7,7 +7,7 @@
  * through reactive state.
  */
 
-import { findMatches } from '../core/search';
+import { findMatches, type MatchResult } from '../core/search';
 import { getText } from './state';
 
 let editor: HTMLTextAreaElement | null = null;
@@ -52,6 +52,16 @@ export function revealRange(start: number, end: number): boolean {
   element.setSelectionRange(safeStart, safeEnd);
   scrollOffsetIntoView(element, safeStart);
   return true;
+}
+
+/**
+ * Every literal occurrence of `term`, for a panel that wants to walk through them.
+ *
+ * Kept here rather than in the panel so that the only code reading the document's text and turning
+ * it into offsets stays in one module.
+ */
+export function findTermMatches(term: string): MatchResult {
+  return findMatches(getText(), term, { caseSensitive: true });
 }
 
 /** Selects the first literal occurrence of `term`. */

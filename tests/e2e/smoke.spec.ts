@@ -281,6 +281,89 @@ test.describe('full-width / half-width inspection', () => {
     });
     expect(selected).toEqual({ charCode: '2c', value: ',' });
   });
+
+  /*
+   * A symbol chip used to jump to the first occurrence and stop there, so a reader who wanted the
+   * fourth comma had to scroll and find it by eye. The navigator is the same one the find panel
+   * uses; these tests hold it to the same behaviour, including wrapping in both directions.
+   */
+  test('walks through every occurrence of a symbol', async ({ page }) => {
+    await page.goto('/');
+    await setText(page, '你好。世界。再见。第四句。');
+    await page.locator('#textcount-tab-symbols').click();
+
+    const positionOf = (): Promise<number> =>
+      page.locator(EDITOR).evaluate((element) => (element as HTMLTextAreaElement).selectionStart);
+    const nav = page.locator('.chip-nav');
+
+    const position = nav.locator('.chip-nav__position');
+    await page.locator('[data-testid="symbol-group-period"] .chip').first().click();
+    await expect(nav).toHaveCount(1);
+    await expect(position).toHaveAttribute('data-index', '1');
+    await expect(position).toHaveAttribute('data-total', '4');
+    expect(await positionOf()).toBe(2);
+
+    await nav.locator('button').last().click();
+    await expect(position).toHaveAttribute('data-index', '2');
+    expect(await positionOf()).toBe(5);
+
+    await nav.locator('button').last().click();
+    expect(await positionOf()).toBe(8);
+
+    // Two more steps: third, then wrap to the first.
+    await nav.locator('button').last().click();
+    expect(await positionOf()).toBe(12);
+    await nav.locator('button').last().click();
+    await expect(position).toHaveAttribute('data-index', '1');
+    expect(await positionOf()).toBe(2);
+
+    // And backwards from the first wraps to the last.
+    await nav.locator('button').first().click();
+    await expect(position).toHaveAttribute('data-index', '4');
+    expect(await positionOf()).toBe(12);
+  });
+
+  /*
+   * The same character appears in both the related-forms group and the category list. Keying the
+   * active state on the character rather than the chip highlighted both and rendered two
+   * navigators for one symbol.
+   */
+  test('shows one navigator even when the symbol is listed twice', async ({ page }) => {
+    await page.goto('/');
+    await setText(page, '你好。世界。再见，第三句，');
+    await page.locator('#textcount-tab-symbols').click();
+
+    await page.locator('[data-testid="symbol-group-period"] .chip').first().click();
+    await expect(page.locator('.chip-nav')).toHaveCount(1);
+    await expect(page.locator('.chip--active, .sym--active')).toHaveCount(1);
+    const periodPosition = await page
+      .locator(EDITOR)
+      .evaluate((element) => (element as HTMLTextAreaElement).selectionStart);
+    expect(periodPosition).toBe(2);
+
+    // Choosing a different symbol moves the navigator rather than adding another.
+    await page.locator('[data-testid="symbol-group-comma"] .chip').first().click();
+    await expect(page.locator('.chip-nav')).toHaveCount(1);
+    await expect(page.locator('.chip--active, .sym--active')).toHaveCount(1);
+    const commaPosition = await page
+      .locator(EDITOR)
+      .evaluate((element) => (element as HTMLTextAreaElement).selectionStart);
+    expect(commaPosition).toBe(8);
+  });
+
+  test('steps a symbol to nothing when it occurs once', async ({ page }) => {
+    await page.goto('/');
+    await setText(page, '你好。世界');
+    await page.locator('#textcount-tab-symbols').click();
+
+    await page.locator('[data-testid="symbol-group-period"] .chip').first().click();
+    // One occurrence: the chip still locates, but there is nothing to step through.
+    await expect(page.locator('.chip-nav')).toHaveCount(0);
+    const position = await page
+      .locator(EDITOR)
+      .evaluate((element) => (element as HTMLTextAreaElement).selectionStart);
+    expect(position).toBe(2);
+  });
 });
 
 test.describe('interface language', () => {
