@@ -8,7 +8,6 @@
  */
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
-import type { ComponentType } from 'preact';
 import { locateFirst, revealRange } from '../app/editor';
 import {
   appStore,
@@ -19,16 +18,25 @@ import {
 } from '../app/state';
 import type { FrequencyUnit } from '../core/insights';
 import type { MessageKey } from '../locales';
-import type { CloudWord, WordCloudProps } from './WordCloud';
+import type { CloudWord } from './WordCloud';
 import { useSelectionIndicator } from './common';
 
 const ANALYSIS_DEBOUNCE_MS = 200;
 /** Rows rendered at once. Far more than this and the panel becomes a scroll marathon. */
 const PARAGRAPH_ROWS = 60;
 const FREQUENCY_ROWS = 40;
-/** The design reference suggests 30–60 words; 30 is what breathes in a 390px-wide panel. */
-const CLOUD_WORDS = 30;
-const CLOUD_HEIGHT = 300;
+/**
+ * How many terms go into the cloud. The design reference allows 30–60; 20 is added because a
+ * smaller cloud is easier to read at a glance, and the point of the higher values is to dig, not to
+ * decorate. Whatever the count, the layout reports how many it could actually place.
+ */
+const CLOUD_COUNTS = [20, 30, 40, 60] as const;
+const CLOUD_SIZES = [
+  { id: 'small', height: 220 },
+  { id: 'medium', height: 300 },
+  { id: 'large', height: 420 },
+] as const;
+type CloudSizeId = (typeof CLOUD_SIZES)[number]['id'];
 
 type InsightView = 'paragraphs' | 'frequency' | 'cloud';
 type ParagraphOrder = 'document' | 'length';
@@ -370,9 +378,11 @@ function CloudView({
   const t = useTranslate();
   const holder = useRef<HTMLDivElement>(null);
   const width = useElementWidth(holder);
-  const [cloudModule, setCloudModule] = useState<{
-    WordCloud: ComponentType<WordCloudProps>;
-  } | null>(null);
+  const [cloudModule, setCloudModule] = useState<typeof import('./WordCloud') | null>(null);
+  const [count, setCount] = useState<number>(30);
+  const [size, setSize] = useState<CloudSizeId>('medium');
+  const [exporting, setExporting] = useState(false);
+  const [exportFailed, setExportFailed] = useState(false);
 
   // Code-split: the cloud is the only part of the app that needs a layout engine, so it is
   // fetched the first time somebody actually asks to see it.
@@ -387,16 +397,111 @@ function CloudView({
     };
   }, [cloudModule]);
 
-  const words: CloudWord[] = report.frequency.entries
-    .slice(0, CLOUD_WORDS)
-    .map((entry) => ({ term: entry.term, count: entry.count }));
+  const height = CLOUD_SIZES.find((option) => option.id === size)?.height ?? 300;
+  /*
+   * Memoised on purpose. WordCloud memoises its layout on `words`, and that layout drives an
+   * effect which reports `{placed, total}` back up to this panel's state. A freshly built array on
+   * every render therefore started a loop — render, new words, new layout, report, setState,
+   * render — which starved the main thread badly enough that clicks on the controls above never
+   * completed once the list grew to 70 terms.
+   */
+  const words = useMemo<CloudWord[]>(
+    () =>
+      report.frequency.entries.slice(0, count).map((entry) => ({
+        term: entry.term,
+        count: entry.count,
+      })),
+    [report.frequency.entries, count],
+  );
+  const ready = cloudModule !== null && width > 0;
 
   if (report.frequency.entries.length === 0) {
     return <p class="panel-empty">{t('insights.cloud.empty')}</p>;
   }
 
+  const download = (kind: 'svg' | 'png'): void => {
+    const svg = holder.current?.querySelector('svg');
+    if (cloudModule === null || svg === null || svg === undefined) return;
+    setExportFailed(false);
+    const filename = `textcount-wordcloud.${kind}`;
+    if (kind === 'svg') {
+      cloudModule.exportCloudSvg(svg, filename);
+      return;
+    }
+    setExporting(true);
+    void cloudModule
+      .exportCloudPng(svg, filename, 2)
+      .catch(() => setExportFailed(true))
+      .finally(() => setExporting(false));
+  };
+
   return (
     <>
+      {/*
+       * The controls sit above the canvas because they change what is drawn. Word count and size
+       * are not independent: raising the count on a small canvas mostly produces dropped words,
+       * and the "placed" line below reports that honestly rather than silently shrinking type.
+       */}
+      <div class="cloud-controls">
+        <div class="cloud-control" role="group" aria-label={t('insights.cloud.count')} data-testid="cloud-count">
+          <span class="cloud-control__label">{t('insights.cloud.count')}</span>
+          <div class="cloud-control__options">
+            {CLOUD_COUNTS.map((option) => (
+              <button
+                key={option}
+                type="button"
+                class={option === count ? 'cloud-option cloud-option--on' : 'cloud-option'}
+                aria-pressed={option === count}
+                onClick={() => setCount(option)}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div class="cloud-control" role="group" aria-label={t('insights.cloud.size')} data-testid="cloud-size">
+          <span class="cloud-control__label">{t('insights.cloud.size')}</span>
+          <div class="cloud-control__options">
+            {CLOUD_SIZES.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                class={option.id === size ? 'cloud-option cloud-option--on' : 'cloud-option'}
+                aria-pressed={option.id === size}
+                onClick={() => setSize(option.id)}
+              >
+                {t(`insights.cloud.size.${option.id}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div class="cloud-control" role="group" aria-label={t('insights.cloud.export')} data-testid="cloud-export">
+          <span class="cloud-control__label">{t('insights.cloud.export')}</span>
+          <div class="cloud-control__options">
+            <button
+              type="button"
+              class="cloud-option"
+              disabled={!ready || exporting}
+              title={t('insights.cloud.exportPngHint')}
+              onClick={() => download('png')}
+            >
+              {t('insights.cloud.exportPng')}
+            </button>
+            <button
+              type="button"
+              class="cloud-option"
+              disabled={!ready}
+              title={t('insights.cloud.exportSvgHint')}
+              onClick={() => download('svg')}
+            >
+              {t('insights.cloud.exportSvg')}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="cloud" ref={holder}>
         {cloudModule === null || width === 0 ? (
           <p class="hint hint--busy">{t('insights.cloud.loading')}</p>
@@ -404,15 +509,26 @@ function CloudView({
           <cloudModule.WordCloud
             words={words}
             width={width}
-            height={CLOUD_HEIGHT}
+            height={height}
             ariaLabel={t('insights.view.cloud')}
             onLayout={onPlaced}
             onSelect={(term) => locateFirst(term, true)}
           />
         )}
       </div>
+      {exportFailed ? (
+        <p class="hint hint--warn" data-testid="cloud-export-failed">
+          {t('insights.cloud.exportFailed')}
+        </p>
+      ) : null}
       {placed !== null ? (
-        <p class="hint">
+        <p
+          class="hint"
+          data-testid="cloud-placed"
+          /* Machine-readable, so tests do not parse a translated sentence. */
+          data-placed={placed.placed}
+          data-total={placed.total}
+        >
           {t('insights.cloud.placed', { placed: placed.placed, total: placed.total })}
         </p>
       ) : null}

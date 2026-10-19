@@ -901,6 +901,108 @@ test.describe('insights', () => {
   });
 });
 
+test.describe('word cloud controls', () => {
+  /** 70 distinct English terms, enough that the count control has something to choose between. */
+  const MANY_TERMS = Array.from(
+    { length: 70 },
+    (_, index) => `term${String.fromCharCode(65 + (index % 26))}${index}`,
+  ).join(' ');
+
+  const openCloud = async (page: import('@playwright/test').Page): Promise<void> => {
+    await page.goto('/');
+    await setText(page, MANY_TERMS);
+    await page.locator('#textcount-tab-insights').click();
+    await page
+      .locator('[data-testid="insights-views"]')
+      .getByRole('button', { name: 'Cloud' })
+      .click();
+    await expect(page.locator('.cloud svg')).toBeVisible();
+  };
+
+  test('changes how many words are offered to the layout', async ({ page }) => {
+    await openCloud(page);
+    const count = page.locator('[data-testid="cloud-count"]');
+    const placedLine = page.locator('[data-testid="cloud-placed"]');
+
+    /*
+     * The contract is "how many candidates go to the layout", not "how many end up on screen":
+     * the canvas is space-limited, so a larger count legitimately places only what fits and says
+     * so in the same line. Asserting placed-count growth would test the layout engine's packing,
+     * not the control.
+     */
+    await count.getByRole('button', { name: '20', exact: true }).click();
+    await expect(placedLine).toHaveAttribute('data-total', '20');
+
+    await count.getByRole('button', { name: '60', exact: true }).click();
+    await expect(placedLine).toHaveAttribute('data-total', '60');
+
+    // Never more words on screen than were offered.
+    const placed = Number(await placedLine.getAttribute('data-placed'));
+    expect(placed).toBeLessThanOrEqual(60);
+    expect(await page.locator('.cloud__word').count()).toBeLessThanOrEqual(60);
+  });
+
+  test('changes the canvas size', async ({ page }) => {
+    await openCloud(page);
+    const size = page.locator('[data-testid="cloud-size"]');
+    const heightOf = async (): Promise<number> => {
+      const box = await page.locator('.cloud svg').getAttribute('viewBox');
+      return Number(box?.split(' ')[3] ?? 0);
+    };
+
+    const medium = await heightOf();
+    await size.getByRole('button', { name: 'L', exact: true }).click();
+    await expect.poll(heightOf).toBeGreaterThan(medium);
+    await size.getByRole('button', { name: 'S', exact: true }).click();
+    await expect.poll(heightOf).toBeLessThan(medium);
+  });
+
+  test('exports the cloud as SVG with the text still as text', async ({ page }) => {
+    await openCloud(page);
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('[data-testid="cloud-export"]').getByRole('button', { name: 'SVG' }).click(),
+    ]);
+    expect(download.suggestedFilename()).toBe('textcount-wordcloud.svg');
+    const stream = await download.createReadStream();
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) chunks.push(chunk as Buffer);
+    const markup = Buffer.concat(chunks).toString('utf8');
+    expect(markup).toContain('<svg');
+    expect(markup).toContain('xmlns="http://www.w3.org/2000/svg"');
+    // Exported words are real text nodes, not an image of words.
+    expect(markup).toContain('<text');
+    // The live SVG inherits its ink from CSS; an export that kept currentColor would be blank.
+    expect(markup).not.toContain('currentColor');
+    expect(markup).toMatch(/fill="rgb\(/);
+  });
+
+  test('exports the cloud as a PNG at twice the layout size', async ({ page }) => {
+    await openCloud(page);
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('[data-testid="cloud-export"]').getByRole('button', { name: 'PNG' }).click(),
+    ]);
+    expect(download.suggestedFilename()).toBe('textcount-wordcloud.png');
+    const stream = await download.createReadStream();
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) chunks.push(chunk as Buffer);
+    const buffer = Buffer.concat(chunks);
+    // PNG magic number, and a non-trivial payload rather than a blank canvas.
+    expect(buffer.subarray(0, 8)).toEqual(
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    );
+    expect(buffer.length).toBeGreaterThan(2000);
+    // IHDR carries the pixel dimensions: the medium canvas is 300 tall, exported at 2x.
+    expect(buffer.readUInt32BE(20)).toBe(600);
+    // Width follows the panel, so assert it doubled rather than pin a value that depends on layout.
+    const viewBoxWidth = await page
+      .locator('.cloud svg')
+      .evaluate((node) => (node as SVGSVGElement).viewBox.baseVal.width);
+    expect(buffer.readUInt32BE(16)).toBe(Math.round(viewBoxWidth * 2));
+  });
+});
+
 test.describe('layout stability', () => {
   test('aligns the workspace toolbar dividers with a mouse and touch pointer', async ({ browser, baseURL }) => {
     for (const touch of [false, true]) {

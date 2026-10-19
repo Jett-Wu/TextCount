@@ -88,6 +88,17 @@ export const en: Messages = {
   'insights.cloud.empty': 'No terms available for a word cloud.',
   'insights.cloud.loading': 'Loading the word cloud…',
   'insights.cloud.placed': '{placed} of {total} words placed',
+  'insights.cloud.count': 'Words',
+  'insights.cloud.size': 'Size',
+  'insights.cloud.size.small': 'S',
+  'insights.cloud.size.medium': 'M',
+  'insights.cloud.size.large': 'L',
+  'insights.cloud.export': 'Export',
+  'insights.cloud.exportPng': 'PNG',
+  'insights.cloud.exportSvg': 'SVG',
+  'insights.cloud.exportPngHint': 'Download at 2x (bitmap, for sharing as-is)',
+  'insights.cloud.exportSvgHint': 'Download vector (text stays text, sharp at any size)',
+  'insights.cloud.exportFailed': 'Export failed. Please try again.',
   'insights.cloud.note':
     'Size shows frequency. Click to locate.',
 

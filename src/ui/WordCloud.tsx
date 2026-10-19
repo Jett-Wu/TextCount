@@ -315,3 +315,113 @@ export function WordCloud({
     </svg>
   );
 }
+/* ------------------------------------------------------------------ export */
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/** Nearest opaque background, so an exported image is not transparent-on-black in some viewers. */
+export function opaqueBackground(element: Element | null): string {
+  let node: Element | null = element;
+  while (node !== null) {
+    const colour = getComputedStyle(node).backgroundColor;
+    const alpha = Number((colour.match(/[\d.]+/g) ?? [])[3] ?? 1);
+    if (colour !== 'rgba(0, 0, 0, 0)' && alpha > 0.95) return colour;
+    node = node.parentElement;
+  }
+  return '#ffffff';
+}
+
+/**
+ * A self-contained copy of the cloud.
+ *
+ * The live SVG inherits its ink from CSS (`fill="currentColor"`, a class for transitions), which
+ * means nothing outside this document can render it. Every visual value is therefore written onto
+ * the clone as an attribute. Words stay real `<text>`, so an exported SVG is still selectable and
+ * editable rather than a picture of words.
+ */
+function standaloneSvg(source: SVGSVGElement, background: string): SVGSVGElement {
+  const box = source.viewBox.baseVal;
+  const clone = source.cloneNode(true) as SVGSVGElement;
+  const originals = [...source.querySelectorAll('text')];
+  const copies = clone.querySelectorAll('text');
+  originals.forEach((original, index) => {
+    const copy = copies[index];
+    if (copy === undefined) return;
+    const computed = getComputedStyle(original);
+    copy.setAttribute('fill', computed.fill);
+    copy.setAttribute('fill-opacity', computed.fillOpacity);
+    copy.setAttribute('font-family', computed.fontFamily);
+    copy.setAttribute('font-size', computed.fontSize);
+    copy.removeAttribute('class');
+  });
+  // The hit rectangles only exist for pointer input; they would be painted into an export.
+  for (const rect of clone.querySelectorAll('rect')) rect.remove();
+  for (const group of clone.querySelectorAll('g')) {
+    group.removeAttribute('tabindex');
+    group.removeAttribute('role');
+    group.removeAttribute('aria-label');
+  }
+  clone.removeAttribute('class');
+  clone.removeAttribute('role');
+  clone.removeAttribute('aria-label');
+  clone.setAttribute('xmlns', SVG_NS);
+  clone.setAttribute('width', String(box.width));
+  clone.setAttribute('height', String(box.height));
+
+  const plate = document.createElementNS(SVG_NS, 'rect');
+  plate.setAttribute('width', String(box.width));
+  plate.setAttribute('height', String(box.height));
+  plate.setAttribute('fill', background);
+  clone.insertBefore(plate, clone.firstChild);
+  return clone;
+}
+
+function save(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  // Revoking synchronously can cancel the download in some browsers.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Vector export: the words remain text, so the file stays sharp at any size. */
+export function exportCloudSvg(source: SVGSVGElement, filename: string): void {
+  const markup = new XMLSerializer().serializeToString(
+    standaloneSvg(source, opaqueBackground(source.parentElement)),
+  );
+  save(new Blob([markup], { type: 'image/svg+xml;charset=utf-8' }), filename);
+}
+
+/** Raster export at `scale` times the layout size, for pasting somewhere that wants pixels. */
+export async function exportCloudPng(
+  source: SVGSVGElement,
+  filename: string,
+  scale = 2,
+): Promise<void> {
+  const box = source.viewBox.baseVal;
+  const markup = new XMLSerializer().serializeToString(
+    standaloneSvg(source, opaqueBackground(source.parentElement)),
+  );
+  const image = new Image();
+  const loaded = new Promise<void>((resolve, reject) => {
+    // Handlers first: assigning `src` starts the load, and a data URL can settle before a
+    // listener attached afterwards is in place.
+    image.onload = () => resolve();
+    image.onerror = () => reject(new Error('the cloud could not be rasterised'));
+  });
+  image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`;
+  await loaded;
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(box.width * scale));
+  canvas.height = Math.max(1, Math.round(box.height * scale));
+  const context = canvas.getContext('2d');
+  if (context === null) throw new Error('no 2d canvas context');
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, 'image/png');
+  });
+  if (blob === null) throw new Error('the canvas could not encode a PNG');
+  save(blob, filename);
+}
