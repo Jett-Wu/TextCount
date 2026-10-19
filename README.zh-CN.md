@@ -6,9 +6,9 @@
 
 字数、词频、词云 —— 全部在浏览器里完成。
 
-[**在线试用 →**](https://jett-wu.github.io/TextCount/) · [功能](#功能) · [开发](#开发)
+### ▶ [jett-wu.github.io/TextCount](https://jett-wu.github.io/TextCount/)
 
-[English](README.md) · **简体中文**
+[功能](#功能) · [开发](#开发) · [English](README.md) · **简体中文**
 
 [![CI](https://github.com/Jett-Wu/TextCount/actions/workflows/ci.yml/badge.svg)](https://github.com/Jett-Wu/TextCount/actions/workflows/ci.yml)
 

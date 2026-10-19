@@ -6,9 +6,9 @@
 
 Counts, word frequency, word cloud — nothing leaves your browser.
 
-[**Try it →**](https://jett-wu.github.io/TextCount/) · [Features](#features) · [Development](#development)
+### ▶ [jett-wu.github.io/TextCount](https://jett-wu.github.io/TextCount/)
 
-**English** · [简体中文](README.zh-CN.md)
+[Features](#features) · [Development](#development) · **English** · [简体中文](README.zh-CN.md)
 
 [![CI](https://github.com/Jett-Wu/TextCount/actions/workflows/ci.yml/badge.svg)](https://github.com/Jett-Wu/TextCount/actions/workflows/ci.yml)
 
