@@ -36,3 +36,9 @@ npm-debug.log*
 
 # TypeScript incremental build info
 *.tsbuildinfo
+
+# Local working documents: kept on disk for the agent workflow, deliberately not published
+AGENTS.md
+PROJECT.md
+TASK.md
+DEVLOG.md
