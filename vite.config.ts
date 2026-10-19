@@ -3,6 +3,7 @@ import { defineConfig } from 'vite';
 import preact from '@preact/preset-vite';
 import { readFile, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { gzipSync } from 'node:zlib';
 import type { Plugin } from 'vite';
 
 /**
@@ -16,14 +17,33 @@ import type { Plugin } from 'vite';
  */
 const base = process.env.BASE_PATH ?? '/textcount/';
 
+/**
+ * `cfb` is CommonJS and guards its export with `typeof require`. A bundled browser worker has no
+ * global `require`, so the guard has to go — but the only way to remove it is to match the exact
+ * source text, which is brittle by construction.
+ *
+ * That brittleness is why a miss throws instead of returning the code untouched: dev and Node
+ * tests run the unbundled module and would keep passing, while the *only* thing that breaks is the
+ * DOC import inside the production worker. Failing the build is the cheaper failure.
+ */
+const CFB_EXPORT_GUARD =
+  "if(typeof require !== 'undefined' && typeof module !== 'undefined' && typeof DO_NOT_EXPORT_CFB === 'undefined') { module.exports = CFB; }";
+/** The marker makes the transform idempotent and tells a re-run apart from upstream drift. */
+const CFB_PATCH = 'module.exports = CFB;/*textcount-cfb-patch*/';
+
 function cfbBrowserInterop(): Plugin {
   return {
     name: 'cfb-browser-interop',
     enforce: 'pre',
     transform(code, id) {
       if (!id.replaceAll('\\', '/').endsWith('/cfb/cfb.js')) return;
-      // CFB guards module.exports with typeof require; bundled browsers have no global require.
-      return code.replace("if(typeof require !== 'undefined' && typeof module !== 'undefined' && typeof DO_NOT_EXPORT_CFB === 'undefined') { module.exports = CFB; }", 'module.exports = CFB;');
+      if (code.includes(CFB_EXPORT_GUARD)) return code.replace(CFB_EXPORT_GUARD, CFB_PATCH);
+      if (code.includes(CFB_PATCH)) return;
+      throw new Error(
+        'cfb-browser-interop: the module.exports guard was not found in cfb/cfb.js. ' +
+          'The pinned cfb version has probably changed — update CFB_EXPORT_GUARD. Shipping ' +
+          'without this patch breaks DOC import only in the browser worker.',
+      );
     },
   };
 }
@@ -67,18 +87,54 @@ function pdfAssets(): Plugin {
   };
 }
 
+/**
+ * Enforces the first-load budget that `chunkSizeWarningLimit` cannot express.
+ *
+ * Raising that limit to silence the parsers would also silence a parser that had been imported
+ * statically, which is the failure worth catching: the entry is ~38 kB gzip, and one static
+ * `import 'pdfjs-dist'` puts 118 kB gzip on every visitor before they have pasted anything.
+ */
+function firstLoadBudget(): Plugin {
+  const LIMIT_GZIP = 60 * 1024;
+  return {
+    name: 'first-load-budget',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      for (const chunk of Object.values(bundle)) {
+        if (chunk.type !== 'chunk' || !chunk.isEntry) continue;
+        // Worker builds contribute entries too; only the page's entry is fetched up front.
+        if (!/(^|\/)index-[\w-]+\.js$/.test(chunk.fileName)) continue;
+        const gzip = gzipSync(Buffer.from(chunk.code)).length;
+        if (gzip > LIMIT_GZIP) {
+          this.error(
+            `first-load-budget: the initial script is ${(gzip / 1024).toFixed(1)} kB gzip, over ` +
+              `the ${LIMIT_GZIP / 1024} kB budget. Something that belongs behind a dynamic import ` +
+              `is in the first load — check for a new static import of a parser.`,
+          );
+        }
+      }
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [preact(), pdfAssets()],
+  plugins: [preact(), pdfAssets(), firstLoadBudget()],
   worker: { plugins: () => [cfbBrowserInterop()] },
   base,
   build: {
     target: 'es2022',
     cssTarget: 'chrome111',
-    // No source maps in the deployed artifact: the app is tiny and we do not want to
-    // publish anything that is not needed on the static host.
+    // No source maps in the deployed artifact: publish nothing that is not needed on the host.
     sourcemap: false,
     reportCompressedSize: true,
-    chunkSizeWarningLimit: 300,
+    /*
+     * The two parsers are large on purpose and are never part of the first load: PDF.js is a
+     * 1.08 MB worker plus a 398 kB module, and the Word extractor is a 68 kB worker. The default
+     * 300 kB limit therefore fired on every single build, which is how a warning becomes
+     * wallpaper. The budget that actually matters is the initial chunk, and `firstLoadBudget`
+     * enforces that one.
+     */
+    chunkSizeWarningLimit: 1200,
   },
   test: {
     // The counting engine is framework-free, so unit tests need no DOM.
