@@ -36,12 +36,25 @@ const LIST_PAGE = 300;
  * decorate. Whatever the count, the layout reports how many it could actually place.
  */
 const CLOUD_COUNTS = [20, 30, 40, 60] as const;
-const CLOUD_SIZES = [
-  { id: 'small', height: 220 },
-  { id: 'medium', height: 300 },
-  { id: 'large', height: 420 },
+/**
+ * The second control sets the export shape, not a type scale. A word cloud is nearly always saved
+ * and dropped somewhere — a slide, a chat, a page — and where it goes decides the aspect ratio.
+ * Font size is not this control's business: it follows the word count (see CloudView).
+ * The labels are numeric, so they are the same in every language.
+ */
+const CLOUD_SHAPES = [
+  { id: 'square', label: '1:1', width: 1, height: 1 },
+  { id: 'classic', label: '4:3', width: 4, height: 3 },
+  { id: 'wide', label: '16:9', width: 16, height: 9 },
+  { id: 'screen', label: '16:10', width: 16, height: 10 },
 ] as const;
-type CloudSizeId = (typeof CLOUD_SIZES)[number]['id'];
+type CloudShapeId = (typeof CLOUD_SHAPES)[number]['id'];
+/**
+ * Long edge of the exported PNG, in pixels: 3000px is 300 DPI across 10 inches, the usual floor for
+ * anything that might be printed. The on-screen canvas is only a few hundred CSS pixels wide; the
+ * SVG is vector, so scaling it up here costs sharpness nothing.
+ */
+const EXPORT_LONG_EDGE = 3000;
 
 type InsightView = 'paragraphs' | 'frequency' | 'cloud';
 type ParagraphOrder = 'document' | 'length';
@@ -417,7 +430,7 @@ function CloudView({
   const width = useElementWidth(holder);
   const [cloudModule, setCloudModule] = useState<typeof import('./WordCloud') | null>(null);
   const [count, setCount] = useState<number>(30);
-  const [size, setSize] = useState<CloudSizeId>('medium');
+  const [shapeId, setShape] = useState<CloudShapeId>('square');
   const [exporting, setExporting] = useState(false);
   const [exportFailed, setExportFailed] = useState(false);
 
@@ -434,7 +447,8 @@ function CloudView({
     };
   }, [cloudModule]);
 
-  const height = CLOUD_SIZES.find((option) => option.id === size)?.height ?? 300;
+  const shape = CLOUD_SHAPES.find((option) => option.id === shapeId) ?? CLOUD_SHAPES[0];
+  const height = Math.max(120, Math.round((width * shape.height) / shape.width));
   /*
    * Memoised on purpose. WordCloud memoises its layout on `words`, and that layout drives an
    * effect which reports `{placed, total}` back up to this panel's state. A freshly built array on
@@ -450,6 +464,19 @@ function CloudView({
       })),
     [report.frequency.entries, count],
   );
+  /*
+   * Type size follows word count and canvas area — never the shape directly.
+   *
+   * A cloud has to fill whatever canvas it is given. With a fixed type scale the same 30 words
+   * looked right on one shape and cramped or lost on another; worse, a fixed scale meant a bigger
+   * canvas only added blank margin (measured: 300 -> 420 left the drawn height at 264px and the
+   * fill fell from 88% to 63%). Sizing from the area each word may occupy — sqrt(area / words) —
+   * keeps the fill roughly constant, so asking for more words is what makes the type smaller.
+   * Words that still do not fit are reported, never silently shrunk.
+   */
+  const density = Math.sqrt((width * height) / Math.max(words.length, 1));
+  const cloudMaxFont = Math.min(72, Math.max(14, Math.round(density * 0.59)));
+  const cloudMinFont = Math.max(8, Math.round(cloudMaxFont * 0.35));
   const ready = cloudModule !== null && width > 0;
 
   if (report.frequency.entries.length === 0) {
@@ -467,7 +494,7 @@ function CloudView({
     }
     setExporting(true);
     void cloudModule
-      .exportCloudPng(svg, filename, 2)
+      .exportCloudPng(svg, filename, EXPORT_LONG_EDGE / Math.max(width, height, 1))
       .catch(() => setExportFailed(true))
       .finally(() => setExporting(false));
   };
@@ -496,18 +523,20 @@ function CloudView({
           </div>
         </div>
 
-        <div class="cloud-control" role="group" aria-label={t('insights.cloud.size')} data-testid="cloud-size">
-          <span class="cloud-control__label">{t('insights.cloud.size')}</span>
+        <div class="cloud-control" role="group" aria-label={t('insights.cloud.aspect')} data-testid="cloud-shape">
+          <span class="cloud-control__label">{t('insights.cloud.aspect')}</span>
           <div class="cloud-control__options">
-            {CLOUD_SIZES.map((option) => (
+            {CLOUD_SHAPES.map((option) => (
               <button
                 key={option.id}
                 type="button"
-                class={option.id === size ? 'cloud-option cloud-option--on' : 'cloud-option'}
-                aria-pressed={option.id === size}
-                onClick={() => setSize(option.id)}
+                class={option.id === shapeId ? 'cloud-option cloud-option--on' : 'cloud-option'}
+                aria-pressed={option.id === shapeId}
+                /* Numeric, so it needs no translation; the label doubles as the accessible name. */
+                aria-label={option.label}
+                onClick={() => setShape(option.id)}
               >
-                {t(`insights.cloud.size.${option.id}`)}
+                {option.label}
               </button>
             ))}
           </div>
@@ -552,6 +581,8 @@ function CloudView({
             words={words}
             width={width}
             height={height}
+            minFontSize={cloudMinFont}
+            maxFontSize={cloudMaxFont}
             ariaLabel={t('insights.view.cloud')}
             onLayout={onPlaced}
             onSelect={(term) => locateFirst(term, true)}

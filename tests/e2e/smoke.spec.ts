@@ -1108,21 +1108,68 @@ test.describe('word cloud controls', () => {
     expect(await page.locator('.cloud__word').count()).toBeLessThanOrEqual(60);
   });
 
-  test('changes the canvas size', async ({ page }) => {
+  test('changes the export shape, holding the aspect ratio', async ({ page }) => {
     await openCloud(page);
-    const size = page.locator('[data-testid="cloud-size"]');
-    const heightOf = async (): Promise<number> => {
-      const box = await page.locator('.cloud svg').getAttribute('viewBox');
-      return Number(box?.split(' ')[3] ?? 0);
+    const shape = page.locator('[data-testid="cloud-shape"]');
+    const boxOf = async (): Promise<{ width: number; height: number }> => {
+      const viewBox = await page.locator('.cloud svg').getAttribute('viewBox');
+      const parts = (viewBox ?? '').split(' ').map(Number);
+      return { width: parts[2] ?? 0, height: parts[3] ?? 0 };
     };
 
-    expect(await heightOf()).toBe(300);
-    await size.getByRole('button', { name: 'L', exact: true }).click();
-    await expect.poll(heightOf).toBe(420);
-    await size.getByRole('button', { name: 'S', exact: true }).click();
-    await expect.poll(heightOf).toBe(220);
-    await size.getByRole('button', { name: 'M', exact: true }).click();
-    await expect.poll(heightOf).toBe(300);
+    // The shape control decides the canvas ratio, so the ratio itself is the contract.
+    for (const [label, ratio] of [
+      ['1:1', 1],
+      ['4:3', 4 / 3],
+      ['16:9', 16 / 9],
+      ['16:10', 16 / 10],
+    ] as const) {
+      await shape.getByRole('button', { name: label, exact: true }).click();
+      await expect
+        .poll(async () => {
+          const box = await boxOf();
+          return Math.abs(box.width / box.height - ratio);
+        })
+        .toBeLessThan(0.02);
+    }
+  });
+
+  test('shrinks the type as word count grows, so the canvas stays filled', async ({ page }) => {
+    await openCloud(page);
+    const count = page.locator('[data-testid="cloud-count"]');
+
+    /*
+     * Font size follows the word count, not a size control: the cloud has to fill its canvas, so
+     * more words means smaller type. This asserts the Largest word's rendered size rather than the
+     * drawn bounding box, because the box stays canvas-sized by design.
+     */
+    const largestFont = async (): Promise<number> =>
+      page.evaluate(() =>
+        Math.max(
+          ...[...document.querySelectorAll('.cloud svg text')].map((word) =>
+            Number.parseFloat(getComputedStyle(word).fontSize),
+          ),
+        ),
+      );
+
+    await count.getByRole('button', { name: '20', exact: true }).click();
+    await expect.poll(largestFont).toBeGreaterThan(0);
+    const few = await largestFont();
+
+    await count.getByRole('button', { name: '60', exact: true }).click();
+    await expect.poll(largestFont).toBeLessThan(few);
+
+    // ...and the cloud still fills the canvas rather than shrinking to a stamp.
+    const fill = await page.evaluate(() => {
+      const svg = document.querySelector('.cloud svg') as SVGSVGElement;
+      const words = [...svg.querySelectorAll('text')].map((word) =>
+        (word as SVGGraphicsElement).getBBox(),
+      );
+      const top = Math.min(...words.map((box) => box.y));
+      const bottom = Math.max(...words.map((box) => box.y + box.height));
+      return (bottom - top) / svg.viewBox.baseVal.height;
+    });
+    expect(fill).toBeGreaterThan(0.6);
   });
 
   test('exports the cloud as SVG with the text still as text', async ({ page }) => {
@@ -1161,13 +1208,21 @@ test.describe('word cloud controls', () => {
       Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     );
     expect(buffer.length).toBeGreaterThan(2000);
-    // IHDR carries the pixel dimensions: the medium canvas is 300 tall, exported at 2x.
-    expect(buffer.readUInt32BE(20)).toBe(600);
-    // Width follows the panel, so assert it doubled rather than pin a value that depends on layout.
-    const viewBoxWidth = await page
+    /*
+     * IHDR carries the pixel dimensions. The export targets a 3000px long edge — 300 DPI across 10
+     * inches — regardless of how small the on-screen canvas is, so assert the long edge and that the
+     * canvas ratio is preserved rather than pinning a scale factor.
+     */
+    const width = buffer.readUInt32BE(16);
+    const height = buffer.readUInt32BE(20);
+    expect(Math.max(width, height)).toBe(3000);
+    const viewBox = await page
       .locator('.cloud svg')
-      .evaluate((node) => (node as SVGSVGElement).viewBox.baseVal.width);
-    expect(buffer.readUInt32BE(16)).toBe(Math.round(viewBoxWidth * 2));
+      .evaluate((node) => {
+        const box = (node as SVGSVGElement).viewBox.baseVal;
+        return { width: box.width, height: box.height };
+      });
+    expect(Math.abs(width / height - viewBox.width / viewBox.height)).toBeLessThan(0.02);
   });
 });
 
